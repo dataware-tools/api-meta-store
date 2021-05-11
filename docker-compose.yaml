@@ -1,12 +1,14 @@
 version: '3.8'
 services:
-    api:
+    api-meta-store:
         build: .
-        image: api:latest
-        container_name: api
+        image: registry.gitlab.com/dataware-tools/api-meta-store:latest
+        container_name: api-meta-store
         environment:
           PORT: 8080
-          API_DEBUG: 'true'
+#          API_DEBUG: 'true'
+          PYDTK_META_DB_ENGINE: 'tinymongo'
+          PYDTK_META_DB_HOST: '/opt/app/test/assets/test_v4'
         volumes:
             - .:/opt/app:rw
         ports:
