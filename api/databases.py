@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Body
 from pydtk.db import V4DBHandler as DBHandler
 
 from api.exceptions import ObjectExists, ObjectDoesNotExist, InvalidObject
-from api.utils import parse_search_keyword
+from api.utils import parse_search_keyword, filter_data, validate_input_data
 
 router = APIRouter(
     prefix="/databases",
@@ -34,12 +34,19 @@ def list_databases(
         (json): list of databases
 
     """
-    return _list_databases(
-        sort_key,
-        per_page,
-        page,
-        search
-    )
+    try:
+        resp = _list_databases(
+            sort_key,
+            per_page,
+            page,
+            search
+        )
+        assert 'data' in resp.keys()
+        assert isinstance(resp['data'], list)
+        resp['data'] = [filter_data(item) for item in resp['data']]
+        return resp
+    except AssertionError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post('')
@@ -54,8 +61,11 @@ def create_database(data=Body(...)):
 
     """
     try:
-        return _create_database(data)
-    except ():
+        validate_input_data(data)
+        resp = _create_database(data)
+        resp = filter_data(resp)
+        return resp
+    except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
     except AssertionError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -73,25 +83,30 @@ def get_database(database_id: str):
 
     """
     try:
-        return _get_database(database_id)
+        resp = _get_database(database_id)
+        resp = filter_data(resp)
+        return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
 
 
 @router.patch('/{database_id}')
-def update_database(database_id: str, info=Body(...)):
+def update_database(database_id: str, data=Body(...)):
     """Patch database information.
 
     Args:
         database_id (str): database-id
-        info (Body): database information
+        data (Body): database information
 
     Returns:
         (json): detail of the database
 
     """
     try:
-        return _update_database(database_id, info)
+        validate_input_data(data)
+        resp = _update_database(database_id, data)
+        resp = filter_data(resp)
+        return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
     except AssertionError as e:
@@ -138,7 +153,7 @@ def _list_databases(sort_key: str,
 
     # Prepare search query
     pql = parse_search_keyword(search_keyword, ['database_id'])
-    order_by = {sort_key: 1}
+    order_by = [(sort_key, 1)]
 
     # Read
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by)
