@@ -176,7 +176,8 @@ def _list_records(database_id: str,
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
 
     # Prepare search query
@@ -227,7 +228,8 @@ def _create_record(database_id: str, info: dict):
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
     handler.add_data(info)
     handler.save()
@@ -251,7 +253,8 @@ def _get_record(database_id: str, record_id: str):
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
 
     # Execute query and read DB
@@ -264,7 +267,7 @@ def _get_record(database_id: str, record_id: str):
         raise InvalidObject('Multiple objects found')
 
     # Return
-    resp = next(handler)
+    resp = handler.data[0]
 
     return resp
 
@@ -288,7 +291,8 @@ def _update_record(database_id: str, record_id: str, info):
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
 
     # Check info
@@ -333,7 +337,12 @@ def _delete_record(database_id: str, record_id: str):
     info = _get_record(database_id, record_id)
 
     # Save to DB
-    handler = DBHandler(db_class='meta', database_id=database_id, read_on_init=False)
+    handler = DBHandler(
+        db_class='meta',
+        database_id=database_id,
+        read_on_init=False,
+        orient='record_id'
+    )
     handler.remove_data(info)
     handler.save()
 
