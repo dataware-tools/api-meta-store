@@ -3,10 +3,9 @@
 """Database related functions."""
 
 from fastapi import APIRouter, HTTPException, Body
-from pydtk.db import V4DBHandler as DBHandler
 
 from api.exceptions import ObjectExists, ObjectDoesNotExist, InvalidObject
-from api.utils import parse_search_keyword, filter_data, validate_input_data
+from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
 
 router = APIRouter(
     prefix="/databases",
@@ -146,10 +145,7 @@ def _list_databases(sort_key: str,
     begin = per_page * (page - 1)
 
     # Prepare DBHandler
-    handler = DBHandler(
-        db_class='database_id',
-        read_on_init=False
-    )
+    handler = get_db_handler('database')
 
     # Prepare search query
     pql = parse_search_keyword(search_keyword, ['database_id'])
@@ -195,11 +191,7 @@ def _create_database(info: dict):
         pass
 
     # Prepare database
-    handler = DBHandler(
-        db_class='meta',
-        database_id=info['database_id'],
-        read_on_init=False
-    )
+    handler = get_db_handler('record', database_id=info['database_id'])
     handler.save()
 
     # Update database
@@ -219,10 +211,7 @@ def _get_database(database_id):
 
     """
     # Prepare DBHandler
-    handler = DBHandler(
-        db_class='database_id',
-        read_on_init=False
-    )
+    handler = get_db_handler('database')
 
     # Execute query and read DB
     handler.read(pql=f'database_id == "{database_id}"')
@@ -261,9 +250,9 @@ def _update_database(database_id, info):
     database_info.update(info)
 
     # Save to DB
-    db_handler = DBHandler(db_class='database_id', read_on_init=False)
-    db_handler.add_data(database_info)
-    db_handler.save()
+    handler = get_db_handler('database')
+    handler.add_data(database_info)
+    handler.save()
 
     # Return
     resp = database_info
@@ -282,7 +271,7 @@ def _delete_database(database_id):
     info = _get_database(database_id)
 
     # Save to DB
-    handler = DBHandler(db_class='database_id', read_on_init=False)
+    handler = get_db_handler('database')
     handler.remove_data(info)
     handler.save()
 

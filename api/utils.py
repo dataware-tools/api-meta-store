@@ -5,6 +5,7 @@
 import os
 
 from api.exceptions import InvalidData
+from pydtk.db import V4DBHandler as DBHandler
 
 
 def to_content_df(df, base_dir_path):
@@ -155,3 +156,39 @@ def filter_data(data: dict) -> dict:
 
     """
     return {k: v for k, v in data.items() if not k.startswith('_')}
+
+
+def get_db_handler(handler_type: str, database_id: str = None) -> DBHandler:
+    """Returns DB-Handler.
+
+    Args:
+        handler_type (str): 'database', 'record', or 'file'
+        database_id (str): database-id (optional)
+
+    Returns:
+        (DBHandler): Database handler
+
+    """
+    if handler_type == 'database':
+        handler = DBHandler(
+            db_class='database_id',
+            read_on_init=False
+        )
+    elif handler_type == 'record':
+        handler = DBHandler(
+            db_class='meta',
+            database_id=database_id,
+            orient='record_id',
+            read_on_init=False
+        )
+    elif handler_type == 'file':
+        handler = DBHandler(
+            db_class='meta',
+            database_id=database_id,
+            orient='path',
+            read_on_init=False
+        )
+    else:
+        raise ValueError(f'Unknown handler-type: {handler_type}')
+
+    return handler
