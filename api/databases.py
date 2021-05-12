@@ -43,7 +43,7 @@ def list_databases(
 
 
 @router.post('')
-def create_databases(data=Body(...)):
+def create_database(data=Body(...)):
     """Register new database information.
 
     Args:
