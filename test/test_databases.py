@@ -3,41 +3,11 @@
 """Test code."""
 
 import json
-import os
-import shutil
 
-import api
-from api.server import api as api_server
-from fastapi.testclient import TestClient
-
-client = TestClient(api_server)
+from .common import _init_database, _set_env, _set_dummy_env, client, _assert_list_response
 
 
-# Initialize database
-base_dir = os.path.join(os.path.dirname(os.path.dirname(api.__file__)), 'test', 'assets', 'test_v4')
-shutil.copyfile(
-    os.path.join(base_dir, 'default.original.json'),
-    os.path.join(base_dir, 'default.json')
-)
-
-
-def _set_env():
-    os.environ['PYDTK_META_DB_ENGINE'] = 'tinymongo'
-    os.environ['PYDTK_META_DB_HOST'] = base_dir
-
-
-def _set_dummy_env():
-    os.environ['PYDTK_META_DB_ENGINE'] = 'tinymongo'
-    os.environ['PYDTK_META_DB_HOST'] = '/tmp/api-meta-store'
-
-
-def _assert_list_response(data):
-    assert 'data' in data.keys()
-    assert 'sort_key' in data.keys()
-    assert 'count' in data.keys()
-    assert 'per_page' in data.keys()
-    assert 'page' in data.keys()
-    assert 'number_of_pages' in data.keys()
+_init_database()
 
 
 def test_list_databases_200():

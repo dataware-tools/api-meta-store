@@ -3,7 +3,8 @@
 """Utilities."""
 
 import os
-import re
+
+from api.exceptions import InvalidData
 
 
 def to_content_df(df, base_dir_path):
@@ -129,3 +130,28 @@ def parse_search_keyword(search_keyword: str, columns=None):
             query += '(' + ' or '.join(filters) + ')'
 
     return query
+
+
+def validate_input_data(data: dict):
+    """Validae the input data.
+
+    Args:
+        data (dict): input data
+
+    """
+    for k in data.keys():
+        if k.startswith('_'):
+            raise InvalidData('keys cannot start with "_"')
+
+
+def filter_data(data: dict) -> dict:
+    """Filter data for response message.
+
+    Args:
+        data (dict): original data
+
+    Returns:
+        (dict): data with filtered keys
+
+    """
+    return {k: v for k, v in data.items() if not k.startswith('_')}

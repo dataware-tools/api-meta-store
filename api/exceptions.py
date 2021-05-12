@@ -16,3 +16,8 @@ class ObjectDoesNotExist(Exception):
 class InvalidObject(Exception):
     """Exception for the case the retrieved object is invalid."""
     pass
+
+
+class InvalidData(Exception):
+    """Exception for the case the input data is invalid."""
+    pass
