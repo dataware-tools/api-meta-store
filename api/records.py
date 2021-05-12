@@ -299,6 +299,8 @@ def _update_record(database_id: str, record_id: str, info):
     if 'record_id' in info.keys():
         assert info['record_id'] == record_id, '"record_id" cannot be changed.'
     for key in info.keys():
+        if key in handler.config['index_columns']:
+            raise InvalidData(f'Key "{key}" cannot be updated. Please replace this record.')
         if key not in [c['name'] for c in handler.config['columns']]:
             continue
         column_info = next(filter(lambda c: c['name'] == key, handler.config['columns']))
