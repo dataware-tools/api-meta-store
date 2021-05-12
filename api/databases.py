@@ -194,15 +194,17 @@ def _create_database(info: dict):
     except ObjectDoesNotExist:
         pass
 
-    # Prepare DBHandler
+    # Prepare database
     handler = DBHandler(
-        db_class='database_id',
+        db_class='meta',
+        database_id=info['database_id'],
         read_on_init=False
     )
-    handler.add_data(info)
     handler.save()
 
-    resp = info
+    # Update database
+    resp = _update_database(info['database_id'], info)
+
     return resp
 
 
