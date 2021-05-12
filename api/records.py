@@ -3,11 +3,10 @@
 """Record related functions."""
 
 from fastapi import APIRouter, HTTPException, Body
-from pydtk.db import V4DBHandler as DBHandler
 
 from api.exceptions import ObjectExists, ObjectDoesNotExist, InvalidObject, InvalidData
 from api.databases import _get_database
-from api.utils import parse_search_keyword, filter_data, validate_input_data
+from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
 
 router = APIRouter(
     prefix="/records",
@@ -173,15 +172,10 @@ def _list_records(database_id: str,
     _ = _get_database(database_id)
 
     # Prepare DBHandler
-    handler = DBHandler(
-        db_class='meta',
-        database_id=database_id,
-        read_on_init=False,
-        orient='record_id'
-    )
+    handler = get_db_handler('record', database_id=database_id)
 
     # Prepare search query
-    pql = parse_search_keyword(search_keyword, ['record_id_id'])
+    pql = parse_search_keyword(search_keyword, ['record_id'])
     order_by = [(sort_key, 1)]
 
     # Read
@@ -225,12 +219,7 @@ def _create_record(database_id: str, info: dict):
         raise ObjectDoesNotExist(f'database "{database_id}" does not exist')
 
     # Prepare DBHandler
-    handler = DBHandler(
-        db_class='meta',
-        database_id=database_id,
-        read_on_init=False,
-        orient='record_id'
-    )
+    handler = get_db_handler('record', database_id=database_id)
     handler.add_data(info)
     handler.save()
 
@@ -250,12 +239,7 @@ def _get_record(database_id: str, record_id: str):
 
     """
     # Prepare DBHandler
-    handler = DBHandler(
-        db_class='meta',
-        database_id=database_id,
-        read_on_init=False,
-        orient='record_id'
-    )
+    handler = get_db_handler('record', database_id=database_id)
 
     # Execute query and read DB
     handler.read(pql=f'record_id == "{record_id}"', group_by='record_id')
@@ -288,12 +272,7 @@ def _update_record(database_id: str, record_id: str, info):
     _ = _get_record(database_id, record_id)
 
     # Prepare DBHandler
-    handler = DBHandler(
-        db_class='meta',
-        database_id=database_id,
-        read_on_init=False,
-        orient='record_id'
-    )
+    handler = get_db_handler('record', database_id=database_id)
 
     # Execute query and read DB
     handler.read(pql=f'record_id == "{record_id}"')
@@ -344,12 +323,7 @@ def _delete_record(database_id: str, record_id: str):
     info = _get_record(database_id, record_id)
 
     # Save to DB
-    handler = DBHandler(
-        db_class='meta',
-        database_id=database_id,
-        read_on_init=False,
-        orient='record_id'
-    )
+    handler = get_db_handler('record', database_id=database_id)
     handler.remove_data(info)
     handler.save()
 
