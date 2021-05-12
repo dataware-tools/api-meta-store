@@ -62,7 +62,7 @@ def test_create_record_200():
     )
     data = json.loads(r.text)
     assert r.status_code == 200
-    assert any([d['record_id'] == 'test' for d in data['data']])
+    assert any([d['record_id'] == 'pytest' for d in data['data']])
 
 
 def test_create_record_404():
@@ -108,7 +108,7 @@ def test_get_record_404():
     assert r.status_code == 404
 
 
-def test_update_database_200():
+def test_update_record_200():
     _set_env()
     r = client.patch(
         '/records/pytest',
@@ -188,7 +188,7 @@ def test_patch_record_400_2():
     assert r.status_code == 400
 
 
-def test_delete_database_200():
+def test_delete_record_200():
     _set_env()
     r = client.delete(
         '/records/pytest',
@@ -206,7 +206,7 @@ def test_delete_database_200():
     assert r.status_code == 404
 
 
-def test_delete_database_404():
+def test_delete_record_404():
     _set_dummy_env()
     r = client.delete(
         '/records/pytest',
