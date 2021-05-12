@@ -21,7 +21,6 @@ def test_list_records_200():
     assert r.status_code == 200
     data = json.loads(r.text)
     _assert_list_response(data)
-    assert len(data['data']) > 0
 
 
 def test_list_records_404():
@@ -43,7 +42,8 @@ def test_create_record_200():
             'record_id': 'pytest',
             'name': 'pytest',
             'description': 'Description',
-            'list': ['a', 'b', 'c']
+            'list': ['a', 'b', 'c'],
+            'tags': ['tag1', 'tag2']
         },
         params={
             'database_id': 'default'
@@ -73,7 +73,8 @@ def test_create_record_404():
             'record_id': 'pytest',
             'name': 'pytest',
             'description': 'Description',
-            'list': ['a', 'b', 'c']
+            'list': ['a', 'b', 'c'],
+            'tags': ['tag1', 'tag2']
         },
         params={
             'database_id': 'aaa'
