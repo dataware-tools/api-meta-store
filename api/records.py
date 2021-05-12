@@ -176,7 +176,8 @@ def _list_records(database_id: str,
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
 
     # Prepare search query
@@ -227,7 +228,8 @@ def _create_record(database_id: str, info: dict):
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
     handler.add_data(info)
     handler.save()
@@ -251,7 +253,8 @@ def _get_record(database_id: str, record_id: str):
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
 
     # Execute query and read DB
@@ -264,7 +267,7 @@ def _get_record(database_id: str, record_id: str):
         raise InvalidObject('Multiple objects found')
 
     # Return
-    resp = next(handler)
+    resp = handler.data[0]
 
     return resp
 
@@ -288,13 +291,24 @@ def _update_record(database_id: str, record_id: str, info):
     handler = DBHandler(
         db_class='meta',
         database_id=database_id,
-        read_on_init=False
+        read_on_init=False,
+        orient='record_id'
     )
 
-    # Check info
-    if 'record_id' in info.keys():
-        assert info['record_id'] == record_id, '"record_id" cannot be changed.'
-    for key in info.keys():
+    # Execute query and read DB
+    handler.read(pql=f'record_id == "{record_id}"')
+
+    # List-up keys whose values are different from those on DB
+    keys_to_update = set()
+    for data in handler:
+        for key in info.keys():
+            if key in data.keys() and data[key] != info[key]:
+                keys_to_update.add(key)
+
+    # Check keys
+    for key in keys_to_update:
+        if key in handler.config['index_columns']:
+            raise InvalidData(f'Key "{key}" cannot be updated. Please replace this record.')
         if key not in [c['name'] for c in handler.config['columns']]:
             continue
         column_info = next(filter(lambda c: c['name'] == key, handler.config['columns']))
@@ -303,9 +317,6 @@ def _update_record(database_id: str, record_id: str, info):
         if column_info['aggregation'] in ['first']:
             continue
         raise InvalidData(f'Key "{key}" cannot be updated. Consider updating on file-level.')
-
-    # Execute query and read DB
-    handler.read(pql=f'record_id == "{record_id}"')
 
     # Update data one-by-one
     for data in handler.data:
@@ -333,7 +344,12 @@ def _delete_record(database_id: str, record_id: str):
     info = _get_record(database_id, record_id)
 
     # Save to DB
-    handler = DBHandler(db_class='meta', database_id=database_id, read_on_init=False)
+    handler = DBHandler(
+        db_class='meta',
+        database_id=database_id,
+        read_on_init=False,
+        orient='record_id'
+    )
     handler.remove_data(info)
     handler.save()
 
