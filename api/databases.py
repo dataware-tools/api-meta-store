@@ -113,9 +113,9 @@ def delete_database(database_id):
 
 
 def _list_databases(sort_key: str,
-                   per_page: int,
-                   page: int,
-                   search_keyword: str):
+                    per_page: int,
+                    page: int,
+                    search_keyword: str):
     """Return a list of databases.
 
     Args:
