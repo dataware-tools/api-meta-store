@@ -10,8 +10,11 @@ from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
+from api import databases
+
+
 # Metadata
-description = "An API template."
+description = "An API for managing metadata"
 terms_of_service = "http://tools.hdwlab.com/terms/"
 contact = {
     "name": "API Support",
@@ -25,7 +28,8 @@ license = {
 
 # Initialize app
 api = FastAPI(
-    title="API Template",
+    title="api-meta-store",
+    debug=os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1'],
     version="1.0",
     openapi="3.0.2",
     docs_route='/docs',
@@ -41,6 +45,7 @@ api.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+api.include_router(databases.router)
 
 
 @api.get('/')
@@ -67,7 +72,4 @@ def healthz():
 
 
 if __name__ == '__main__':
-    debug = os.environ.get('API_DEBUG', '') in ['true', 'True', 'TRUE', '1']
-    print('Debug: {}'.format(debug))
-    if debug:
-        uvicorn.run(api, host="0.0.0.0", port=8080)
+    uvicorn.run(api, host="0.0.0.0", port=8080)
