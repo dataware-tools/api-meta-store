@@ -4,13 +4,34 @@
 
 import json
 
+import pytest
 from .common import _init_database, _set_env, _set_dummy_env, client, _assert_list_response
 
 
-_init_database()
+@pytest.fixture
+def init():
+    _init_database()
 
 
-def test_list_records_200():
+@pytest.fixture
+def add_data():
+    _set_env()
+    client.post(
+        '/records',
+        json={
+            'record_id': 'pytest',
+            'name': 'pytest',
+            'description': 'Description',
+            'list': ['a', 'b', 'c'],
+            'tags': ['tag1', 'tag2']
+        },
+        params={
+            'database_id': 'default'
+        }
+    )
+
+
+def test_list_records_200(init):
     _set_env()
     r = client.get(
         '/records',
@@ -23,7 +44,7 @@ def test_list_records_200():
     _assert_list_response(data)
 
 
-def test_list_records_404():
+def test_list_records_404(init):
     _set_env()
     r = client.get(
         '/records',
@@ -34,7 +55,7 @@ def test_list_records_404():
     assert r.status_code == 404
 
 
-def test_create_record_200():
+def test_create_record_200(init):
     _set_env()
     r = client.post(
         '/records',
@@ -65,7 +86,7 @@ def test_create_record_200():
     assert any([d['record_id'] == 'pytest' for d in data['data']])
 
 
-def test_create_record_404():
+def test_create_record_404(init):
     _set_env()
     r = client.post(
         '/records',
@@ -83,7 +104,7 @@ def test_create_record_404():
     assert r.status_code == 404
 
 
-def test_get_record_200():
+def test_get_record_200(init, add_data):
     _set_env()
     r = client.get(
         '/records/pytest',
@@ -98,7 +119,7 @@ def test_get_record_200():
     assert data['description'] == 'Description'
 
 
-def test_get_record_404():
+def test_get_record_404(init, add_data):
     _set_dummy_env()
     r = client.get(
         '/records/pytest',
@@ -109,7 +130,7 @@ def test_get_record_404():
     assert r.status_code == 404
 
 
-def test_update_record_200():
+def test_update_record_200(init, add_data):
     _set_env()
     r = client.patch(
         '/records/pytest',
@@ -140,7 +161,7 @@ def test_update_record_200():
     assert data['tag'] == 'new-tag'
 
 
-def test_update_record_404():
+def test_update_record_404(init, add_data):
     _set_dummy_env()
     r = client.patch(
         '/records/pytest',
@@ -156,7 +177,7 @@ def test_update_record_404():
     assert r.status_code == 404
 
 
-def test_patch_record_400():
+def test_patch_record_400(init, add_data):
     _set_env()
     r = client.patch(
         '/records/pytest',
@@ -172,7 +193,7 @@ def test_patch_record_400():
     assert r.status_code == 400
 
 
-def test_patch_record_400_2():
+def test_patch_record_400_2(init, add_data):
     _set_env()
     r = client.patch(
         '/records/pytest',
@@ -189,7 +210,7 @@ def test_patch_record_400_2():
     assert r.status_code == 400
 
 
-def test_delete_record_200():
+def test_delete_record_200(init, add_data):
     _set_env()
     r = client.delete(
         '/records/pytest',
@@ -207,7 +228,7 @@ def test_delete_record_200():
     assert r.status_code == 404
 
 
-def test_delete_record_404():
+def test_delete_record_404(init, add_data):
     _set_dummy_env()
     r = client.delete(
         '/records/pytest',

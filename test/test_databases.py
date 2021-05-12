@@ -4,13 +4,30 @@
 
 import json
 
+import pytest
 from .common import _init_database, _set_env, _set_dummy_env, client, _assert_list_response
 
 
-_init_database()
+@pytest.fixture
+def init():
+    _init_database()
 
 
-def test_list_databases_200():
+@pytest.fixture
+def add_data():
+    _set_env()
+    client.post(
+        '/databases',
+        json={
+            'database_id': 'test',
+            'name': 'test',
+            'description': 'Description',
+            'list': ['a', 'b', 'c']
+        }
+    )
+
+
+def test_list_databases_200(init):
     _set_env()
     r = client.get('/databases')
     assert r.status_code == 200
@@ -19,7 +36,7 @@ def test_list_databases_200():
     assert len(data['data']) > 0
 
 
-def test_create_database():
+def test_create_database(init):
     _set_env()
     r = client.post(
         '/databases',
@@ -40,7 +57,7 @@ def test_create_database():
     assert any([d['database_id'] == 'test' for d in data['data']])
 
 
-def test_get_database_200():
+def test_get_database_200(init, add_data):
     _set_env()
     r = client.get('/databases/test')
     assert r.status_code == 200
@@ -50,13 +67,13 @@ def test_get_database_200():
     assert data['description'] == 'Description'
 
 
-def test_get_database_404():
+def test_get_database_404(init, add_data):
     _set_dummy_env()
     r = client.get('/databases/test')
     assert r.status_code == 404
 
 
-def test_update_database_200():
+def test_update_database_200(init, add_data):
     _set_env()
     r = client.patch(
         '/databases/test',
@@ -79,7 +96,7 @@ def test_update_database_200():
     assert data['tag'] == 'new-tag'
 
 
-def test_update_database_404():
+def test_update_database_404(init, add_data):
     _set_dummy_env()
     r = client.patch(
         '/databases/test',
@@ -92,7 +109,7 @@ def test_update_database_404():
     assert r.status_code == 404
 
 
-def test_patch_database_400():
+def test_patch_database_400(init, add_data):
     _set_env()
     r = client.patch(
         '/databases/test',
@@ -105,7 +122,7 @@ def test_patch_database_400():
     assert r.status_code == 400
 
 
-def test_delete_database_200():
+def test_delete_database_200(init, add_data):
     _set_env()
     r = client.delete('/databases/test')
     assert r.status_code == 200
@@ -113,7 +130,7 @@ def test_delete_database_200():
     assert r.status_code == 404
 
 
-def test_delete_database_404():
+def test_delete_database_404(init, add_data):
     _set_dummy_env()
     r = client.delete('/databases/test')
     assert r.status_code == 404
