@@ -68,6 +68,8 @@ def create_database(data=Body(...)):
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
     except AssertionError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except ObjectExists as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get('/{database_id}')

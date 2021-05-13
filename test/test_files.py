@@ -6,11 +6,14 @@ import json
 
 import pytest
 from .common import _init_database, _set_env, _set_dummy_env, client, _assert_list_response
+from .test_databases import add_database
 
 
 @pytest.fixture
 def init():
     _init_database()
+    _set_env()
+    add_database('default')
 
 
 @pytest.fixture
@@ -32,13 +35,13 @@ def add_data():
     )
 
 
-def test_list_files_200(init):
+def test_list_files_200(init, add_data):
     _set_env()
     r = client.get(
         '/files',
         params={
             'database_id': 'default',
-            'record_id': 'test'
+            'record_id': 'pytest'
         }
     )
     assert r.status_code == 200
@@ -46,14 +49,14 @@ def test_list_files_200(init):
     _assert_list_response(data)
 
 
-def test_list_files_200_2(init):
+def test_list_files_200_2(init, add_data):
     _set_env()
     r = client.get(
         '/files',
         params={
             'database_id': 'default',
-            'record_id': 'test',
-            'search': '.json'
+            'record_id': 'pytest',
+            'search': '.abc'
         }
     )
     assert r.status_code == 200
@@ -61,7 +64,7 @@ def test_list_files_200_2(init):
     _assert_list_response(data)
     assert len(data['data']) > 0
     for item in data['data']:
-        assert '.json' in item['path']
+        assert '.abc' in item['path']
 
 
 def test_list_files_404(init):
@@ -70,7 +73,7 @@ def test_list_files_404(init):
         '/files',
         params={
             'database_id': 'default',
-            'record_id': 'test'
+            'record_id': 'pytest'
         }
     )
     assert r.status_code == 404
