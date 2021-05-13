@@ -3,7 +3,6 @@
 """Test common."""
 
 import os
-import shutil
 
 import api
 from api.server import api as api_server
@@ -15,22 +14,27 @@ base_dir = os.path.join(
     os.path.dirname(os.path.dirname(api.__file__)),
     'test',
     'assets',
-    'test_v4'
+    'db'
 )
 
 
 def _init_database():
     """Initialize database."""
-    shutil.copyfile(
-        os.path.join(base_dir, 'default.original.json'),
-        os.path.join(base_dir, 'default.json')
-    )
+    if os.path.exists(os.path.join(base_dir, 'default.json')):
+        os.remove(os.path.join(base_dir, 'default.json'))
+    if os.path.exists('/tmp/api-meta-store/default.json'):
+        os.remove('/tmp/api-meta-store/default.json')
 
 
 def _set_env():
     """Set environment for PyDTK."""
     os.environ['PYDTK_META_DB_ENGINE'] = 'tinymongo'
     os.environ['PYDTK_META_DB_HOST'] = base_dir
+    # os.environ['PYDTK_META_DB_ENGINE'] = 'mongodb'
+    # os.environ['PYDTK_META_DB_HOST'] = ''
+    # os.environ['PYDTK_META_DB_USERNAME'] = 'pytest'
+    # os.environ['PYDTK_META_DB_PASSWORD'] = 'pytest'
+    # os.environ['PYDTK_META_DB_DATABASE'] = 'pytest'
 
 
 def _set_dummy_env():

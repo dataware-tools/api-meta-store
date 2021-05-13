@@ -6,11 +6,14 @@ import json
 
 import pytest
 from .common import _init_database, _set_env, _set_dummy_env, client, _assert_list_response
+from .test_databases import add_database
 
 
 @pytest.fixture
 def init():
     _init_database()
+    _set_env()
+    add_database('default')
 
 
 @pytest.fixture
@@ -31,7 +34,7 @@ def add_data():
     )
 
 
-def test_list_records_200(init):
+def test_list_records_200(init, add_data):
     _set_env()
     r = client.get(
         '/records',
