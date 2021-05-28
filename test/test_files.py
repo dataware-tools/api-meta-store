@@ -20,27 +20,43 @@ def init():
 def add_data():
     _set_env()
     client.post(
-        '/files',
+        '/databases/default/files',
         json={
             'name': 'pytest',
             'description': 'Description',
+            'record_id': 'pytest',
             'path': '/path/to/file.abc',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
-        },
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
         }
     )
+
+
+def _get_uuid():
+    _set_env()
+    r = client.get(
+        '/databases/default/files',
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    return data['data'][0]['uuid']
 
 
 def test_list_files_200(init, add_data):
     _set_env()
     r = client.get(
-        '/files',
+        '/databases/default/files',
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    _assert_list_response(data)
+
+
+def test_list_files_200_1(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/files',
         params={
-            'database_id': 'default',
             'record_id': 'pytest'
         }
     )
@@ -52,9 +68,8 @@ def test_list_files_200(init, add_data):
 def test_list_files_200_2(init, add_data):
     _set_env()
     r = client.get(
-        '/files',
+        '/databases/default/files',
         params={
-            'database_id': 'default',
             'record_id': 'pytest',
             'search': '.abc'
         }
@@ -65,14 +80,14 @@ def test_list_files_200_2(init, add_data):
     assert len(data['data']) > 0
     for item in data['data']:
         assert '.abc' in item['path']
+        assert 'uuid' in item.keys()
 
 
 def test_list_files_404(init):
     _set_dummy_env()
     r = client.get(
-        '/files',
+        '/databases/default/files',
         params={
-            'database_id': 'default',
             'record_id': 'pytest'
         }
     )
@@ -82,17 +97,14 @@ def test_list_files_404(init):
 def test_create_file_200(init):
     _set_env()
     r = client.post(
-        '/files',
+        '/databases/default/files',
         json={
             'name': 'pytest',
+            'record_id': 'pytest',
             'description': 'Description',
             'path': '/path/to/file.abc',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
-        },
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
         }
     )
     data = json.loads(r.text)
@@ -100,11 +112,11 @@ def test_create_file_200(init):
     assert data['record_id'] == 'pytest'
     assert data['name'] == 'pytest'
     assert data['description'] == 'Description'
+    assert 'uuid' in data.keys()
     assert data['path'] == '/path/to/file.abc'
     r = client.get(
-        '/files',
+        '/databases/default/files',
         params={
-            'database_id': 'default',
             'record_id': 'pytest'
         }
     )
@@ -116,61 +128,51 @@ def test_create_file_200(init):
 def test_create_file_404(init):
     _set_dummy_env()
     r = client.post(
-        '/files',
+        '/databases/default/files',
         json={
             'name': 'pytest',
+            'record_id': 'pytest',
             'description': 'Description',
             'path': '/path/to/file.abc',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
-        },
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
         }
     )
     assert r.status_code == 404
 
 
 def test_get_file_200(init, add_data):
+    uuid = _get_uuid()
     _set_env()
     r = client.get(
-        '/files/path/to/file.abc',
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
-        }
+        '/databases/default/files/{}'.format(uuid),
     )
     assert r.status_code == 200
     data = json.loads(r.text)
     assert 'record_id' in data.keys()
+    assert 'path' in data.keys()
+    assert 'uuid' in data.keys()
     assert data['record_id'] == 'pytest'
     assert data['description'] == 'Description'
 
 
 def test_get_file_404(init, add_data):
+    uuid = _get_uuid()
     _set_dummy_env()
     r = client.get(
-        '/files/path/to/file.abc',
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
-        }
+        '/databases/default/files/{}'.format(uuid),
     )
     assert r.status_code == 404
 
 
 def test_update_file_200(init, add_data):
+    uuid = _get_uuid()
     _set_env()
     r = client.patch(
-        '/files/path/to/file.abc',
+        '/databases/default/files/{}'.format(uuid),
         json={
             'description': 'new-description',
             'tag': 'new-tag'
-        },
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
         }
     )
     assert r.status_code == 200
@@ -178,11 +180,7 @@ def test_update_file_200(init, add_data):
     assert data['description'] == 'new-description'
     assert data['tag'] == 'new-tag'
     r = client.get(
-        '/files/path/to/file.abc',
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
-        }
+        '/databases/default/files/{}'.format(uuid),
     )
     data = json.loads(r.text)
     assert r.status_code == 200
@@ -192,64 +190,54 @@ def test_update_file_200(init, add_data):
 
 
 def test_update_file_404(init, add_data):
+    uuid = _get_uuid()
     _set_dummy_env()
     r = client.patch(
-        '/files/path/to/file.abc',
+        '/databases/default/files/{}'.format(uuid),
         json={
             'description': 'new-description',
             'tag': 'new-tag'
-        },
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
         }
     )
     assert r.status_code == 404
 
 
 def test_patch_file_400(init, add_data):
+    uuid = _get_uuid()
     _set_env()
     r = client.patch(
-        '/files/path/to/file.abc',
+        '/databases/default/files/{}'.format(uuid),
         json={
             'path': 'abc',
             'description': 'new-description',
             'tag': 'new-tag'
-        },
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
         }
     )
     assert r.status_code == 400
 
 
 def test_delete_file_200(init, add_data):
+    uuid = _get_uuid()
     _set_env()
     r = client.delete(
-        '/files/path/to/file.abc',
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
-        }
+        '/databases/default/files/{}'.format(uuid),
     )
     assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'database_id' in data.keys()
+    assert data['database_id'] == 'default'
+    assert 'uuid' in data.keys()
+    assert data['uuid'] == uuid
     r = client.delete(
-        '/files/path/to/file.abc',
-        params={
-            'database_id': 'default',
-            'record_id': 'pytest'
-        }
+        '/databases/default/files/{}'.format(uuid),
     )
     assert r.status_code == 404
 
 
 def test_delete_record_404():
+    uuid = 'abcdef'
     _set_dummy_env()
     r = client.delete(
-        '/records/pytest',
-        params={
-            'database_id': 'default'
-        }
+        '/databases/default/files/{}'.format(uuid),
     )
     assert r.status_code == 404

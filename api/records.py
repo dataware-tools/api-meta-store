@@ -9,15 +9,15 @@ from api.databases import _get_database
 from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
 
 router = APIRouter(
-    prefix="/records",
     tags=["record"],
     responses={404: {"description": "Not found"}},
 )
 
 
-@router.get('')
+@router.get('/databases/{database_id}/records')
 def list_records(
     database_id: str,
+    *,
     sort_key: str = 'record_id',
     per_page: int = 50,
     page: int = 1,
@@ -54,8 +54,8 @@ def list_records(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post('')
-def create_record(database_id: str, data=Body(...)):
+@router.post('/databases/{database_id}/records')
+def create_record(database_id: str, *, data=Body(...)):
     """Register new record information.
 
     Args:
@@ -81,13 +81,13 @@ def create_record(database_id: str, data=Body(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get('/{record_id}')
-def get_record(record_id: str, database_id: str):
+@router.get('/databases/{database_id}/records/{record_id}')
+def get_record(database_id: str, record_id: str):
     """Get record information.
 
     Args:
-        record_id (str): record-id
         database_id (str): database-id
+        record_id (str): record-id
 
     Returns:
         (json): detail of the record
@@ -105,13 +105,13 @@ def get_record(record_id: str, database_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.patch('/{record_id}')
-def update_record(record_id: str, database_id: str, data=Body(...)):
+@router.patch('/databases/{database_id}/records/{record_id}')
+def update_record(database_id: str, record_id: str, data=Body(...)):
     """Patch record information.
 
     Args:
-        record_id (str): record-id
         database_id (str): database-id
+        record_id (str): record-id
         data (Body): record information
 
     Returns:
@@ -133,17 +133,18 @@ def update_record(record_id: str, database_id: str, data=Body(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete('/{record_id}')
-def delete_record(record_id: str, database_id: str):
+@router.delete('/databases/{database_id}/records/{record_id}')
+def delete_record(database_id: str, record_id: str):
     """Delete record information.
 
     Args:
-        record_id (str): record-id
         database_id (str): database-id
+        record_id (str): record-id
 
     """
     try:
-        _delete_record(database_id, record_id)
+        resp = _delete_record(database_id, record_id)
+        return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
 
@@ -181,17 +182,18 @@ def _list_records(database_id: str,
     # Read
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by, group_by='record_id')
 
-    count = handler.count_total
-    number_of_pages = count // per_page + 1
+    total = handler.count_total
+    number_of_pages = total // per_page + 1
     data = handler.data
 
     resp = {
-        'count': count,
         'data': data,
         'page': page,
         'per_page': per_page,
         'number_of_pages': number_of_pages,
         'sort_key': sort_key,
+        'length': len(data),
+        'total': total,
     }
 
     return resp
@@ -327,4 +329,9 @@ def _delete_record(database_id: str, record_id: str):
     handler.remove_data(info)
     handler.save()
 
-    return
+    resp = {
+        'database_id': database_id,
+        'record_id': record_id
+    }
+
+    return resp

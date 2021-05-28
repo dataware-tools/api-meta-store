@@ -9,16 +9,16 @@ from api.databases import _get_database
 from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
 
 router = APIRouter(
-    prefix="/files",
     tags=["file"],
     responses={404: {"description": "Not found"}},
 )
 
 
-@router.get('')
+@router.get('/databases/{database_id}/files')
 def list_files(
     database_id: str,
-    record_id: str,
+    *,
+    record_id: str = None,
     sort_key: str = 'path',
     per_page: int = 50,
     page: int = 1,
@@ -49,6 +49,7 @@ def list_files(
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
+        resp['data'] = [_expose_uuid(item) for item in resp['data']]
         resp['data'] = [filter_data(item) for item in resp['data']]
         return resp
     except ObjectDoesNotExist as e:
@@ -57,13 +58,16 @@ def list_files(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post('')
-def create_file(database_id: str, record_id: str, data=Body(...)):
+@router.post('/databases/{database_id}/files')
+def create_file(
+    database_id: str,
+    *,
+    data=Body(...)
+):
     """Register new file information.
 
     Args:
         database_id (str): database-id
-        record_id (str): record-id
         data (Body): metadata to register
 
     Returns:
@@ -72,7 +76,8 @@ def create_file(database_id: str, record_id: str, data=Body(...)):
     """
     try:
         validate_input_data(data)
-        resp = _create_file(database_id, record_id, data)
+        resp = _create_file(database_id, data)
+        resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
@@ -85,21 +90,21 @@ def create_file(database_id: str, record_id: str, data=Body(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get('/{path:path}')
-def get_file(path: str, record_id: str, database_id: str):
+@router.get('/databases/{database_id}/files/{uuid}')
+def get_file(database_id: str, uuid: str):
     """Get file information.
 
     Args:
-        path (str): file-path
-        record_id (str): record-id
         database_id (str): database-id
+        uuid (str): unique-id
 
     Returns:
         (json): detail of the file
 
     """
     try:
-        resp = _get_file(database_id, record_id, path)
+        resp = _get_file(database_id, uuid)
+        resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
     except AssertionError as e:
@@ -110,14 +115,18 @@ def get_file(path: str, record_id: str, database_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.patch('/{path:path}')
-def update_file(path: str, record_id: str, database_id: str, data=Body(...)):
+@router.patch('/databases/{database_id}/files/{uuid}')
+def update_file(
+    database_id: str,
+    uuid: str,
+    *,
+    data=Body(...)
+):
     """Update file information.
 
     Args:
-        path (str): file path
-        record_id (str): record-id
         database_id (str): database-id
+        uuid (str): unique-id
         data (Body): file information
 
     Returns:
@@ -126,7 +135,8 @@ def update_file(path: str, record_id: str, database_id: str, data=Body(...)):
     """
     try:
         validate_input_data(data)
-        resp = _update_file(database_id, record_id, path, data)
+        resp = _update_file(database_id, uuid, data)
+        resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
     except ObjectDoesNotExist:
@@ -139,18 +149,18 @@ def update_file(path: str, record_id: str, database_id: str, data=Body(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete('/{path:path}')
-def delete_file(path: str, record_id: str, database_id: str):
+@router.delete('/databases/{database_id}/files/{uuid}')
+def delete_file(database_id: str, uuid: str):
     """Delete file information.
 
     Args:
-        path (str): file path
-        record_id (str): record-id
         database_id (str): database-id
+        uuid (str): unique-id
 
     """
     try:
-        _delete_file(database_id, record_id, path)
+        resp = _delete_file(database_id, uuid)
+        return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
 
@@ -176,6 +186,10 @@ def _list_files(database_id: str,
 
     """
     begin = per_page * (page - 1)
+    if record_id is None:
+        record_id = 'regex(".*")'
+    else:
+        record_id = f'"{record_id}"'
 
     # Check if the database exists
     _ = _get_database(database_id)
@@ -186,36 +200,36 @@ def _list_files(database_id: str,
     # Prepare search query
     pql = parse_search_keyword(search_keyword, ['path'])
     if pql is None:
-        pql = f'record_id == "{record_id}"'
+        pql = f'record_id == {record_id}'
     else:
-        pql = f'record_id == "{record_id}" and {pql}'
+        pql = f'record_id == {record_id} and {pql}'
     order_by = [(sort_key, 1)]
 
     # Read
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by)
 
-    count = handler.count_total
-    number_of_pages = count // per_page + 1
+    total = handler.count_total
+    number_of_pages = total // per_page + 1
     data = handler.data
 
     resp = {
-        'count': count,
         'data': data,
         'page': page,
         'per_page': per_page,
         'number_of_pages': number_of_pages,
         'sort_key': sort_key,
+        'length': len(data),
+        'total': total,
     }
 
     return resp
 
 
-def _create_file(database_id: str, record_id: str, info: dict):
+def _create_file(database_id: str, info: dict):
     """Register new file information.
 
     Args:
         database_id (str): database-id
-        record_id (str): record-id
         info (dict): information of the file
 
     Returns:
@@ -224,7 +238,6 @@ def _create_file(database_id: str, record_id: str, info: dict):
     """
     # Check
     assert database_id is not None
-    assert record_id is not None
     assert 'path' in info.keys()
 
     # Check if the 'database_id' already exist
@@ -233,25 +246,21 @@ def _create_file(database_id: str, record_id: str, info: dict):
     except ObjectDoesNotExist:
         raise ObjectDoesNotExist(f'database "{database_id}" does not exist')
 
-    # Prepare metadata
-    info['record_id'] = record_id
-
     # Prepare DBHandler
     handler = get_db_handler('file', database_id=database_id)
     handler.add_data(info)
     handler.save()
 
-    resp = info
+    resp = handler.data[0]
     return resp
 
 
-def _get_file(database_id: str, record_id: str, path: str):
+def _get_file(database_id: str, uuid: str):
     """Get file information.
 
     Args:
         database_id (str): ID of the database
-        record_id (str): ID of the record
-        path (str): Path of the file
+        uuid (str): Unique-id of the file
 
     Returns:
         (dict): file information
@@ -260,10 +269,8 @@ def _get_file(database_id: str, record_id: str, path: str):
     # Prepare DBHandler
     handler = get_db_handler('file', database_id=database_id)
 
-    # TODO: Substring base-dir from the given path
-
     # Execute query and read DB
-    handler.read(pql=f'record_id == "{record_id}" and path == "{path}"')
+    handler.read(pql=f'_uuid == "{uuid}"')
 
     # Check
     if len(handler) == 0:
@@ -277,13 +284,12 @@ def _get_file(database_id: str, record_id: str, path: str):
     return resp
 
 
-def _update_file(database_id: str, record_id: str, path: str, info):
+def _update_file(database_id: str, uuid: str, info):
     """Update specific file information.
 
     Args:
         database_id (str): ID of the database
-        record_id (str): ID of the record
-        path (str): Path to the file
+        uuid (str): Unique-id of the file
         info (dict): file info
 
     Returns:
@@ -291,15 +297,13 @@ def _update_file(database_id: str, record_id: str, path: str, info):
 
     """
     # Check the existence of the file
-    _ = _get_file(database_id, record_id, path)
+    _ = _get_file(database_id, uuid)
 
     # Prepare DBHandler
     handler = get_db_handler('file', database_id=database_id)
 
-    # TODO: Substring base-dir from the given path
-
     # Execute query and read DB
-    handler.read(pql=f'record_id == "{record_id}" and path == "{path}"')
+    handler.read(pql=f'_uuid == "{uuid}"')
 
     # List-up keys whose values are different from those on DB
     keys_to_update = set()
@@ -327,21 +331,43 @@ def _update_file(database_id: str, record_id: str, path: str, info):
     return resp
 
 
-def _delete_file(database_id: str, record_id: str, path: str):
+def _delete_file(database_id: str, uuid: str):
     """Delete the specified file.
 
     Args:
         database_id (str): ID of the database
-        record_id (str): ID of the record
-        path (str): File path
+        uuid (str): Unique-id of the file
 
     """
     # Check the existence of the file
-    info = _get_file(database_id, record_id, path)
+    info = _get_file(database_id, uuid)
 
     # Save to DB
     handler = get_db_handler('file', database_id=database_id)
     handler.remove_data(info)
     handler.save()
 
-    return
+    resp = {
+        'database_id': database_id,
+        'uuid': uuid
+    }
+
+    return resp
+
+
+def _expose_uuid(data: dict):
+    """Expose _uuid as uuid.
+
+    Args:
+        data (dict): metadata
+
+    Returns:
+        (dict): data where uuids are exposed
+
+    """
+    if not isinstance(data, dict):
+        return data
+    if '_uuid' in data.keys() and 'uuid' not in data.keys():
+        data['uuid'] = data['_uuid']
+
+    return data

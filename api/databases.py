@@ -8,13 +8,12 @@ from api.exceptions import ObjectExists, ObjectDoesNotExist, InvalidObject
 from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
 
 router = APIRouter(
-    prefix="/databases",
     tags=["databases"],
     responses={404: {"description": "Not found"}},
 )
 
 
-@router.get('')
+@router.get('/databases')
 def list_databases(
     sort_key: str = 'database_id',
     per_page: int = 50,
@@ -48,7 +47,7 @@ def list_databases(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post('')
+@router.post('/databases')
 def create_database(data=Body(...)):
     """Register new database information.
 
@@ -72,7 +71,7 @@ def create_database(data=Body(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get('/{database_id}')
+@router.get('/databases/{database_id}')
 def get_database(database_id: str):
     """Get database information.
 
@@ -91,7 +90,7 @@ def get_database(database_id: str):
         raise HTTPException(status_code=404, detail='No such database')
 
 
-@router.patch('/{database_id}')
+@router.patch('/databases/{database_id}')
 def update_database(database_id: str, data=Body(...)):
     """Patch database information.
 
@@ -114,7 +113,7 @@ def update_database(database_id: str, data=Body(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete('/{database_id}')
+@router.delete('/databases/{database_id}')
 def delete_database(database_id):
     """Delete database information.
 
@@ -123,7 +122,8 @@ def delete_database(database_id):
 
     """
     try:
-        _delete_database(database_id)
+        resp = _delete_database(database_id)
+        return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
 
@@ -156,17 +156,18 @@ def _list_databases(sort_key: str,
     # Read
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by)
 
-    count = handler.count_total
-    number_of_pages = count // per_page + 1
+    total = handler.count_total
+    number_of_pages = total // per_page + 1
     data = handler.data
 
     resp = {
-        'count': count,
         'data': data,
         'page': page,
         'per_page': per_page,
         'number_of_pages': number_of_pages,
         'sort_key': sort_key,
+        'length': len(data),
+        'total': total
     }
 
     return resp
@@ -279,4 +280,8 @@ def _delete_database(database_id):
 
     # TODO: Remove the corresponding table for metadata
 
-    return
+    resp = {
+        'database_id': database_id
+    }
+
+    return resp
