@@ -10,7 +10,7 @@ from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-from api import databases, records, files
+from api import databases, records, files, config
 
 
 # Metadata
@@ -48,6 +48,7 @@ api.add_middleware(
 api.include_router(databases.router)
 api.include_router(records.router)
 api.include_router(files.router)
+api.include_router(config.router)
 
 
 @api.get('/')

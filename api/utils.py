@@ -162,7 +162,7 @@ def get_db_handler(handler_type: str, database_id: str = None) -> DBHandler:
     """Returns DB-Handler.
 
     Args:
-        handler_type (str): 'database', 'record', or 'file'
+        handler_type (str): 'database', 'record', 'file' or 'config'
         database_id (str): database-id (optional)
 
     Returns:
@@ -182,6 +182,13 @@ def get_db_handler(handler_type: str, database_id: str = None) -> DBHandler:
             read_on_init=False
         )
     elif handler_type == 'file':
+        handler = DBHandler(
+            db_class='meta',
+            database_id=database_id,
+            orient='path',
+            read_on_init=False
+        )
+    elif handler_type == 'config':
         handler = DBHandler(
             db_class='meta',
             database_id=database_id,
