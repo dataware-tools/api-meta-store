@@ -47,7 +47,8 @@ def _assert_list_response(data):
     """Asserts list response."""
     assert 'data' in data.keys()
     assert 'sort_key' in data.keys()
-    assert 'count' in data.keys()
     assert 'per_page' in data.keys()
     assert 'page' in data.keys()
     assert 'number_of_pages' in data.keys()
+    assert 'total' in data.keys()
+    assert 'length' in data.keys()

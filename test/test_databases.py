@@ -134,6 +134,9 @@ def test_delete_database_200(init, add_data):
     _set_env()
     r = client.delete('/databases/default')
     assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'database_id' in data.keys()
+    assert data['database_id'] == 'default'
     r = client.delete('/databases/default')
     assert r.status_code == 404
 

@@ -20,16 +20,13 @@ def init():
 def add_data():
     _set_env()
     client.post(
-        '/records',
+        '/databases/default/records',
         json={
             'record_id': 'pytest',
             'name': 'pytest',
             'description': 'Description',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
-        },
-        params={
-            'database_id': 'default'
         }
     )
 
@@ -37,10 +34,7 @@ def add_data():
 def test_list_records_200(init, add_data):
     _set_env()
     r = client.get(
-        '/records',
-        params={
-            'database_id': 'default'
-        }
+        '/databases/default/records',
     )
     assert r.status_code == 200
     data = json.loads(r.text)
@@ -50,10 +44,7 @@ def test_list_records_200(init, add_data):
 def test_list_records_404(init):
     _set_env()
     r = client.get(
-        '/records',
-        params={
-            'database_id': 'unknown-database'
-        }
+        '/databases/unknown-database/records',
     )
     assert r.status_code == 404
 
@@ -61,16 +52,13 @@ def test_list_records_404(init):
 def test_create_record_200(init):
     _set_env()
     r = client.post(
-        '/records',
+        '/databases/default/records',
         json={
             'record_id': 'pytest',
             'name': 'pytest',
             'description': 'Description',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
-        },
-        params={
-            'database_id': 'default'
         }
     )
     data = json.loads(r.text)
@@ -79,10 +67,7 @@ def test_create_record_200(init):
     assert data['name'] == 'pytest'
     assert data['description'] == 'Description'
     r = client.get(
-        '/records',
-        params={
-            'database_id': 'default'
-        }
+        '/databases/default/records',
     )
     data = json.loads(r.text)
     assert r.status_code == 200
@@ -92,16 +77,13 @@ def test_create_record_200(init):
 def test_create_record_404(init):
     _set_env()
     r = client.post(
-        '/records',
+        '/databases/unknown-database/records',
         json={
             'record_id': 'pytest',
             'name': 'pytest',
             'description': 'Description',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
-        },
-        params={
-            'database_id': 'aaa'
         }
     )
     assert r.status_code == 404
@@ -110,10 +92,7 @@ def test_create_record_404(init):
 def test_get_record_200(init, add_data):
     _set_env()
     r = client.get(
-        '/records/pytest',
-        params={
-            'database_id': 'default',
-        }
+        '/databases/default/records/pytest',
     )
     assert r.status_code == 200
     data = json.loads(r.text)
@@ -125,10 +104,7 @@ def test_get_record_200(init, add_data):
 def test_get_record_404(init, add_data):
     _set_dummy_env()
     r = client.get(
-        '/records/pytest',
-        params={
-            'database_id': 'default',
-        }
+        '/databases/default/records/pytest',
     )
     assert r.status_code == 404
 
@@ -136,14 +112,11 @@ def test_get_record_404(init, add_data):
 def test_update_record_200(init, add_data):
     _set_env()
     r = client.patch(
-        '/records/pytest',
+        '/databases/default/records/pytest',
         json={
             'record_id': 'pytest',
             'description': 'new-description',
             'tag': 'new-tag'
-        },
-        params={
-            'database_id': 'default'
         }
     )
     assert r.status_code == 200
@@ -152,10 +125,7 @@ def test_update_record_200(init, add_data):
     assert data['description'] == 'new-description'
     assert data['tag'] == 'new-tag'
     r = client.get(
-        '/records/pytest',
-        params={
-            'database_id': 'default'
-        }
+        '/databases/default/records/pytest',
     )
     data = json.loads(r.text)
     assert r.status_code == 200
@@ -167,14 +137,11 @@ def test_update_record_200(init, add_data):
 def test_update_record_404(init, add_data):
     _set_dummy_env()
     r = client.patch(
-        '/records/pytest',
+        '/databases/default/records/pytest',
         json={
             'record_id': 'pytest',
             'description': 'new-description',
             'tag': 'new-tag'
-        },
-        params={
-            'database_id': 'default'
         }
     )
     assert r.status_code == 404
@@ -183,14 +150,11 @@ def test_update_record_404(init, add_data):
 def test_patch_record_400(init, add_data):
     _set_env()
     r = client.patch(
-        '/records/pytest',
+        '/databases/default/records/pytest',
         json={
             'record_id': 'abc',
             'description': 'new-description',
             'tag': 'new-tag'
-        },
-        params={
-            'database_id': 'default'
         }
     )
     assert r.status_code == 400
@@ -199,15 +163,12 @@ def test_patch_record_400(init, add_data):
 def test_patch_record_400_2(init, add_data):
     _set_env()
     r = client.patch(
-        '/records/pytest',
+        '/databases/default/records/pytest',
         json={
             'record_id': 'pytest',
             'description': 'new-description',
             'tag': 'new-tag',
             'tags': []
-        },
-        params={
-            'database_id': 'default'
         }
     )
     assert r.status_code == 400
@@ -216,17 +177,16 @@ def test_patch_record_400_2(init, add_data):
 def test_delete_record_200(init, add_data):
     _set_env()
     r = client.delete(
-        '/records/pytest',
-        params={
-            'database_id': 'default'
-        }
+        '/databases/default/records/pytest',
     )
     assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'database_id' in data.keys()
+    assert data['database_id'] == 'default'
+    assert 'record_id' in data.keys()
+    assert data['record_id'] == 'pytest'
     r = client.delete(
-        '/records/pytest',
-        params={
-            'database_id': 'default'
-        }
+        '/databases/default/records/pytest',
     )
     assert r.status_code == 404
 
@@ -234,9 +194,6 @@ def test_delete_record_200(init, add_data):
 def test_delete_record_404(init, add_data):
     _set_dummy_env()
     r = client.delete(
-        '/records/pytest',
-        params={
-            'database_id': 'default'
-        }
+        '/databases/default/records/pytest',
     )
     assert r.status_code == 404
