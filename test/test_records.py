@@ -16,19 +16,27 @@ def init():
     add_database('default')
 
 
-@pytest.fixture
-def add_data():
-    _set_env()
+def add_record(database_id='default', record_id='pytest'):
     client.post(
-        '/databases/default/records',
+        f'/databases/{database_id}/records',
         json={
-            'record_id': 'pytest',
+            'record_id': record_id,
             'name': 'pytest',
             'description': 'Description',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
         }
     )
+
+
+def remove_record(database_id='default', record_id='pytest'):
+    client.delete(f'/databases/{database_id}/records/{record_id}')
+
+
+@pytest.fixture
+def add_data():
+    _set_env()
+    add_record(database_id='default', record_id='pytest')
 
 
 def test_list_records_200(init, add_data):
