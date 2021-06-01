@@ -6,9 +6,7 @@ from fastapi import APIRouter, HTTPException, Body
 
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData
 from api.databases import _get_database
-from api.utils import filter_data, validate_input_data, get_db_handler
-
-from pydtk.utils.utils import DTYPE_MAP
+from api.utils import filter_data, validate_input_data, get_db_handler, escape_string
 
 router = APIRouter(
     tags=["config"],
@@ -28,7 +26,7 @@ def get_config(database_id: str):
 
     """
     try:
-        resp = _get_config(database_id)
+        resp = _get_config(escape_string(database_id, kind='id'))
         resp = filter_data(resp)
         return resp
     except AssertionError as e:
@@ -53,17 +51,15 @@ def update_config(database_id: str, data=Body(...)):
     """
     try:
         validate_input_data(data)
-        resp = _update_config(database_id, data)
+        resp = _update_config(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp)
         return resp
-    except ObjectDoesNotExist:
-        raise HTTPException(status_code=404, detail='No config found')
+    except (AssertionError, InvalidData) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ObjectDoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
         raise HTTPException(status_code=500, detail=str(e))
-    except InvalidData as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except AssertionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 def _get_config(database_id: str):

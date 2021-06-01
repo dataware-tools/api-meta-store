@@ -16,20 +16,43 @@ def init():
     add_database('default')
 
 
-@pytest.fixture
-def add_data():
-    _set_env()
+def add_file(database_id='default', record_id='pytest', path='/path/to/file.abc'):
     client.post(
-        '/databases/default/files',
+        f'/databases/{database_id}/files',
         json={
             'name': 'pytest',
             'description': 'Description',
-            'record_id': 'pytest',
-            'path': '/path/to/file.abc',
+            'record_id': record_id,
+            'path': path,
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
         }
     )
+
+
+def remove_file_by_uuid(database_id='default', uuid=''):
+    client.delete(f'/databases/{database_id}/files/{uuid}')
+
+
+def remove_file_by_path(database_id='default', record_id='pytest', path='/path/to/file.abc'):
+    r = client.get(
+        f'/databases/{database_id}/files',
+        json={
+            'record_id': record_id,
+            'search': path
+        }
+    )
+    if r.status_code == 200:
+        data = json.loads(r)
+        for file in data['data']:
+            uuid = file['uuid']
+            client.delete(f'/databases/{database_id}/files/{uuid}')
+
+
+@pytest.fixture
+def add_data():
+    _set_env()
+    add_file(database_id='default', path='/path/to/file.abc')
 
 
 def _get_uuid():
@@ -236,6 +259,15 @@ def test_delete_file_200(init, add_data):
 
 def test_delete_record_404():
     uuid = 'abcdef'
+    _set_dummy_env()
+    r = client.delete(
+        '/databases/default/files/{}'.format(uuid),
+    )
+    assert r.status_code == 404
+
+
+def test_delete_record_404_2():
+    uuid = '0%0A'
     _set_dummy_env()
     r = client.delete(
         '/databases/default/files/{}'.format(uuid),

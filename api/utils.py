@@ -162,6 +162,8 @@ def escape_string(data: str, kind: str = None):
         escaped = re.sub('[^a-zA-Z0-9_=<>/()@-]', '', escaped)
     elif kind == 'path':
         escaped = re.sub('[^a-zA-Z0-9:;.,_=<>/~!@#$%^&()+-]', '', escaped)
+    elif kind == 'uuid':
+        escaped = re.sub('[^a-zA-Z0-9_-]', '', escaped)
     else:
         pass
 

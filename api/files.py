@@ -4,9 +4,15 @@
 
 from fastapi import APIRouter, HTTPException, Body
 
-from api.exceptions import ObjectExists, ObjectDoesNotExist, InvalidObject, InvalidData
+from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
 from api.databases import _get_database
-from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
+from api.utils import \
+    parse_search_keyword, \
+    filter_data, \
+    escape_string, \
+    validate_input_data, \
+    validate_sort_key, \
+    get_db_handler
 
 router = APIRouter(
     tags=["file"],
@@ -40,22 +46,22 @@ def list_files(
     """
     try:
         resp = _list_files(
-            database_id,
-            record_id,
+            escape_string(database_id, kind='id'),
+            escape_string(record_id, kind='id'),
             sort_key,
             per_page,
             page,
-            search
+            escape_string(search, kind='filtering')
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
         resp['data'] = [_expose_uuid(item) for item in resp['data']]
         resp['data'] = [filter_data(item) for item in resp['data']]
         return resp
+    except (AssertionError, InvalidSortKey) as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except AssertionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post('/databases/{database_id}/files')
@@ -76,18 +82,16 @@ def create_file(
     """
     try:
         validate_input_data(data)
-        resp = _create_file(database_id, data)
+        resp = _create_file(escape_string(database_id, kind='id'), data)
         resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
-    except AssertionError as e:
+    except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except InvalidData as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get('/databases/{database_id}/files/{uuid}')
@@ -103,7 +107,7 @@ def get_file(database_id: str, uuid: str):
 
     """
     try:
-        resp = _get_file(database_id, uuid)
+        resp = _get_file(escape_string(database_id, kind='id'), escape_string(uuid, kind='uuid'))
         resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
@@ -135,18 +139,20 @@ def update_file(
     """
     try:
         validate_input_data(data)
-        resp = _update_file(database_id, uuid, data)
+        resp = _update_file(
+            escape_string(database_id, kind='id'),
+            escape_string(uuid, kind='uuid'),
+            data
+        )
         resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
-    except ObjectDoesNotExist:
-        raise HTTPException(status_code=404, detail='No such file')
+    except (AssertionError, InvalidData) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ObjectDoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
         raise HTTPException(status_code=500, detail=str(e))
-    except InvalidData as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except AssertionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete('/databases/{database_id}/files/{uuid}')
@@ -159,7 +165,10 @@ def delete_file(database_id: str, uuid: str):
 
     """
     try:
-        resp = _delete_file(database_id, uuid)
+        resp = _delete_file(
+            escape_string(database_id, kind='id'),
+            escape_string(uuid, kind='uuid')
+        )
         return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
@@ -197,6 +206,9 @@ def _list_files(database_id: str,
     # Prepare DBHandler
     handler = get_db_handler('file', database_id=database_id)
 
+    # Validate sort-key
+    validate_sort_key(sort_key, handler)
+
     # Prepare search query
     pql = parse_search_keyword(search_keyword, ['path'])
     if pql is None:
@@ -220,6 +232,8 @@ def _list_files(database_id: str,
         'sort_key': sort_key,
         'length': len(data),
         'total': total,
+        'database_id': database_id,
+        'record_id': record_id
     }
 
     return resp

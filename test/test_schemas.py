@@ -11,6 +11,7 @@ from api.server import api
 from .common import _init_database, _set_env
 from .test_databases import add_database, remove_database
 from .test_records import add_record, remove_record
+from .test_files import remove_file_by_uuid
 
 
 # Prepare schema
@@ -18,20 +19,26 @@ with open('./protocols/schemas/apis/{}/schema.v1.yaml'.format(api.title), 'r') a
     schema = schemathesis.from_file(
         f,
         app=api,
-        # operation_id='createRecord',
-        endpoint='^(/databases/{database_id}/records)'
+        # operation_id='listFiles',
+        # endpoint='^/databases'
     )
-# schema.add_link(
-#     source=schema["/databases"]["POST"],
-#     target=schema["/databases/{database_id}"]["GET"],
-#     status_code="200",
-#     parameters={"database_id": "$response.body#/database_id"},
-# )
+schema.add_link(
+    source=schema["/databases"]["POST"],
+    target=schema["/databases/{database_id}"]["GET"],
+    status_code="200",
+    parameters={"database_id": "$response.body#/database_id"},
+)
 schema.add_link(
     source=schema["/databases/{database_id}/records"]["POST"],
     target=schema["/databases/{database_id}/records/{record_id}"]["GET"],
     status_code="200",
     parameters={"record_id": "$response.body#/record_id"},
+)
+schema.add_link(
+    source=schema["/databases/{database_id}/files"]["POST"],
+    target=schema["/databases/{database_id}/files/{uuid}"]["GET"],
+    status_code="200",
+    parameters={"uuid": "$response.body#/uuid"},
 )
 
 
@@ -54,6 +61,7 @@ class APIWorkflow(schema.as_state_machine()):
             return
         if not hasattr(case, 'path'):
             return
+        print(f'{case.method} {case.formatted_path} {case}')
         if '{database_id}' in case.path:
             add_database(case.path_parameters['database_id'])
             if '{record_id}' in case.path:
@@ -66,6 +74,12 @@ class APIWorkflow(schema.as_state_machine()):
                     remove_record(
                         database_id=case.path_parameters['database_id'],
                         record_id=case.path_parameters['record_id']
+                    )
+            elif '{uuid}' in case.path:
+                if case.method in ['CREATE']:
+                    remove_file_by_uuid(
+                        database_id=case.path_parameters['database_id'],
+                        uuid=case.path_parameters['uuid']
                     )
             else:
                 if case.method in ['GET', 'PATCH', 'DELETE']:
@@ -91,6 +105,4 @@ class APIWorkflow(schema.as_state_machine()):
 
 # Run tests
 TestCase = APIWorkflow.TestCase
-TestCase.settings = settings(max_examples=10, stateful_step_count=5, deadline=None)
-
-
+TestCase.settings = settings(max_examples=100, stateful_step_count=3, deadline=None)
