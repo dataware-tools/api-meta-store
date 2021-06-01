@@ -2,6 +2,7 @@
 # Copyright API authors
 """Utilities."""
 
+import datetime
 import os
 import re
 
@@ -253,3 +254,13 @@ def validate_sort_key(sort_key: str, handler: DBHandler):
     is_valid = sort_key in [c['name'] for c in handler.config['columns']]
     if not is_valid:
         raise InvalidSortKey(f'Sort-key "{sort_key}" is not available')
+
+
+def generate_record_id():
+    """Generate record_id.
+
+    Returns:
+        (str): Record ID
+
+    """
+    return datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:-3]

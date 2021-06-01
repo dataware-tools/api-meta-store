@@ -82,6 +82,30 @@ def test_create_record_200(init):
     assert any([d['record_id'] == 'pytest' for d in data['data']])
 
 
+def test_create_record_200_2(init):
+    _set_env()
+    r = client.post(
+        '/databases/default/records',
+        json={
+            'name': 'pytest2',
+            'description': 'Description',
+            'list': ['a', 'b', 'c'],
+            'tags': ['tag1', 'tag2']
+        }
+    )
+    data = json.loads(r.text)
+    assert r.status_code == 200
+    assert 'record_id' in data.keys()
+    assert data['name'] == 'pytest2'
+    assert data['description'] == 'Description'
+    r = client.get(
+        '/databases/default/records',
+    )
+    data = json.loads(r.text)
+    assert r.status_code == 200
+    assert any([d['name'] == 'pytest2' for d in data['data']])
+
+
 def test_create_record_404(init):
     _set_env()
     r = client.post(

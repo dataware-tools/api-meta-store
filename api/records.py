@@ -12,7 +12,8 @@ from api.utils import \
     escape_string, \
     validate_input_data, \
     validate_sort_key, \
-    get_db_handler
+    get_db_handler, \
+    generate_record_id
 
 router = APIRouter(
     tags=["record"],
@@ -228,7 +229,10 @@ def _create_record(database_id: str, info: dict):
     """
     # Check
     assert database_id is not None
-    assert 'record_id' in info.keys()
+
+    # Generate record_id if needed
+    if 'record_id' not in info.keys():
+        info['record_id'] = generate_record_id()
 
     # Check if the 'database_id' already exist
     try:
