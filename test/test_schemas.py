@@ -2,6 +2,8 @@
 # Copyright API authors
 """Test code."""
 
+import os
+
 from hypothesis import settings
 import schemathesis
 from schemathesis import Case
@@ -15,13 +17,16 @@ from .test_files import remove_file_by_uuid
 
 
 # Prepare schema
-with open('./protocols/schemas/apis/{}/schema.v1.yaml'.format(api.title), 'r') as f:
-    schema = schemathesis.from_file(
-        f,
-        app=api,
-        # operation_id='listFiles',
-        # endpoint='^/databases'
-    )
+schema_path = os.path.join(
+    os.path.dirname(__file__),
+    'protocols/schemas/apis',
+    api.title,
+    'schema.v1.yaml'
+)
+with open(schema_path, 'r') as f:
+    schema = schemathesis.from_file(f, app=api)
+
+# Add links
 schema.add_link(
     source=schema["/databases"]["POST"],
     target=schema["/databases/{database_id}"]["GET"],
