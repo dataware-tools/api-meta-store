@@ -25,6 +25,10 @@ def add_database(database_id='default'):
     )
 
 
+def remove_database(database_id='default'):
+    client.delete(f'/databases/{database_id}')
+
+
 @pytest.fixture
 def add_data():
     _set_env()

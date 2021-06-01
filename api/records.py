@@ -4,9 +4,15 @@
 
 from fastapi import APIRouter, HTTPException, Body
 
-from api.exceptions import ObjectExists, ObjectDoesNotExist, InvalidObject, InvalidData
+from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
 from api.databases import _get_database
-from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
+from api.utils import \
+    parse_search_keyword, \
+    filter_data, \
+    escape_string, \
+    validate_input_data, \
+    validate_sort_key, \
+    get_db_handler
 
 router = APIRouter(
     tags=["record"],
@@ -38,19 +44,19 @@ def list_records(
     """
     try:
         resp = _list_records(
-            database_id,
-            sort_key,
+            escape_string(database_id, kind='id'),
+            escape_string(sort_key, kind='key'),
             per_page,
             page,
-            search
+            escape_string(search, kind='filtering')
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
         resp['data'] = [filter_data(item) for item in resp['data']]
         return resp
-    except ObjectDoesNotExist:
-        raise HTTPException(status_code=404, detail='No such database')
-    except AssertionError as e:
+    except ObjectDoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except (AssertionError, InvalidSortKey) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -68,17 +74,15 @@ def create_record(database_id: str, *, data=Body(...)):
     """
     try:
         validate_input_data(data)
-        resp = _create_record(database_id, data)
+        resp = _create_record(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp)
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
-    except AssertionError as e:
+    except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except InvalidData as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get('/databases/{database_id}/records/{record_id}')
@@ -94,7 +98,10 @@ def get_record(database_id: str, record_id: str):
 
     """
     try:
-        resp = _get_record(database_id, record_id)
+        resp = _get_record(
+            escape_string(database_id, kind='id'),
+            escape_string(record_id, kind='id')
+        )
         resp = filter_data(resp)
         return resp
     except AssertionError as e:
@@ -120,17 +127,19 @@ def update_record(database_id: str, record_id: str, data=Body(...)):
     """
     try:
         validate_input_data(data)
-        resp = _update_record(database_id, record_id, data)
+        resp = _update_record(
+            escape_string(database_id, kind='id'),
+            escape_string(record_id, kind='id'),
+            data
+        )
         resp = filter_data(resp)
         return resp
-    except ObjectDoesNotExist:
-        raise HTTPException(status_code=404, detail='No such record')
+    except (AssertionError, InvalidData) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ObjectDoesNotExist as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
         raise HTTPException(status_code=500, detail=str(e))
-    except InvalidData as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except AssertionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete('/databases/{database_id}/records/{record_id}')
@@ -143,7 +152,10 @@ def delete_record(database_id: str, record_id: str):
 
     """
     try:
-        resp = _delete_record(database_id, record_id)
+        resp = _delete_record(
+            escape_string(database_id, kind='id'),
+            escape_string(record_id, kind='id')
+        )
         return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
@@ -175,6 +187,9 @@ def _list_records(database_id: str,
     # Prepare DBHandler
     handler = get_db_handler('record', database_id=database_id)
 
+    # Validation
+    validate_sort_key(sort_key, handler)
+
     # Prepare search query
     pql = parse_search_keyword(search_keyword, ['record_id'])
     order_by = [(sort_key, 1)]
@@ -194,6 +209,7 @@ def _list_records(database_id: str,
         'sort_key': sort_key,
         'length': len(data),
         'total': total,
+        'database_id': database_id
     }
 
     return resp
@@ -308,7 +324,7 @@ def _update_record(database_id: str, record_id: str, info):
     handler.save()
 
     # Return
-    resp = info
+    resp = _get_record(database_id=database_id, record_id=record_id)
 
     return resp
 

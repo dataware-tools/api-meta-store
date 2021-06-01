@@ -21,3 +21,8 @@ class InvalidObject(Exception):
 class InvalidData(Exception):
     """Exception for the case the input data is invalid."""
     pass
+
+
+class InvalidSortKey(Exception):
+    """Excaption for the case the sort-key is invalid."""
+    pass

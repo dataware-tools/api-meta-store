@@ -3,8 +3,9 @@
 """Utilities."""
 
 import os
+import re
 
-from api.exceptions import InvalidData
+from api.exceptions import InvalidData, InvalidSortKey
 from pydtk.db import V4DBHandler as DBHandler
 
 
@@ -79,6 +80,8 @@ def _parse_search_keyword(keyword, expression, replace_expression=None):
     key = f'"{key}"'
     value = ''.join(keyword.split(expression)[1:])
     value = value.replace('\\', '')
+    if key == '' or value == '':
+        return ''
     if not value.isdecimal():
         value = f'"{value}"'
     if replace_expression == 'regex':
@@ -133,8 +136,42 @@ def parse_search_keyword(search_keyword: str, columns=None):
     return query
 
 
+def escape_string(data: str, kind: str = None):
+    """Escape string
+
+    Args:
+        data (str or None): input string
+        kind (str): 'filtering', 'id'
+
+    Returns:
+        (str or None): escaped string
+
+    """
+    if data is None:
+        return data
+
+    escaped = data
+
+    if kind is None:
+        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>"\'/~!@#$%^&()+-]', '', escaped)
+    elif kind == 'filtering':
+        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>"\'/~!@#$%^&()+-]', '', escaped)
+    elif kind == 'id':
+        escaped = re.sub('[^a-zA-Z0-9_-]', '', escaped)
+    elif kind == 'key':
+        escaped = re.sub('[^a-zA-Z0-9_=<>/()@-]', '', escaped)
+    elif kind == 'path':
+        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>/~!@#$%^&()+-]', '', escaped)
+    elif kind == 'uuid':
+        escaped = re.sub('[^a-zA-Z0-9_-]', '', escaped)
+    else:
+        pass
+
+    return escaped
+
+
 def validate_input_data(data: dict):
-    """Validae the input data.
+    """Validate the input data.
 
     Args:
         data (dict): input data
@@ -142,7 +179,11 @@ def validate_input_data(data: dict):
     """
     for k in data.keys():
         if k.startswith('_'):
-            raise InvalidData('keys cannot start with "_"')
+            raise InvalidData(f'keys cannot start with "_": {k}')
+        if k.startswith('.'):
+            raise InvalidData(f'keys cannot start with ".": {k}')
+        if escape_string(k, kind='key') != k:
+            raise InvalidData(f'invalid key: {k}')
 
 
 def filter_data(data: dict) -> dict:
@@ -199,3 +240,16 @@ def get_db_handler(handler_type: str, database_id: str = None) -> DBHandler:
         raise ValueError(f'Unknown handler-type: {handler_type}')
 
     return handler
+
+
+def validate_sort_key(sort_key: str, handler: DBHandler):
+    """Validate sort-key.
+
+    Args:
+        sort_key (str): Sort key
+        handler (DBHandler): PyDTK DB Handler
+
+    """
+    is_valid = sort_key in [c['name'] for c in handler.config['columns']]
+    if not is_valid:
+        raise InvalidSortKey(f'Sort-key "{sort_key}" is not available')

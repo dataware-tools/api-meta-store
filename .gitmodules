@@ -1,0 +1,3 @@
+[submodule "test/protocols"]
+	path = test/protocols
+	url = git@github.com:dataware-tools/protocols.git

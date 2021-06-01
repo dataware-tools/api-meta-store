@@ -4,8 +4,19 @@
 
 from fastapi import APIRouter, HTTPException, Body
 
-from api.exceptions import ObjectExists, ObjectDoesNotExist, InvalidObject
-from api.utils import parse_search_keyword, filter_data, validate_input_data, get_db_handler
+from api.exceptions import \
+    ObjectExists, \
+    ObjectDoesNotExist, \
+    InvalidObject, \
+    InvalidSortKey, \
+    InvalidData
+from api.utils import \
+    parse_search_keyword, \
+    filter_data, \
+    validate_input_data, \
+    validate_sort_key, \
+    escape_string, \
+    get_db_handler
 
 router = APIRouter(
     tags=["databases"],
@@ -34,17 +45,19 @@ def list_databases(
     """
     try:
         resp = _list_databases(
-            sort_key,
-            per_page,
-            page,
-            search
+            escape_string(sort_key, kind='key'),
+            int(per_page),
+            int(page),
+            escape_string(search, kind='filtering')
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
         resp['data'] = [filter_data(item) for item in resp['data']]
         return resp
-    except AssertionError as e:
+    except (AssertionError, InvalidSortKey) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except SyntaxError:
+        pass
 
 
 @router.post('/databases')
@@ -65,9 +78,7 @@ def create_database(data=Body(...)):
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
-    except AssertionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except ObjectExists as e:
+    except (AssertionError, ObjectExists, InvalidData, InvalidObject) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -83,11 +94,11 @@ def get_database(database_id: str):
 
     """
     try:
-        resp = _get_database(database_id)
+        resp = _get_database(escape_string(database_id, kind='id'))
         resp = filter_data(resp)
         return resp
     except ObjectDoesNotExist:
-        raise HTTPException(status_code=404, detail='No such database')
+        raise HTTPException(status_code=404, detail=f'No such database: {database_id}')
 
 
 @router.patch('/databases/{database_id}')
@@ -104,12 +115,12 @@ def update_database(database_id: str, data=Body(...)):
     """
     try:
         validate_input_data(data)
-        resp = _update_database(database_id, data)
+        resp = _update_database(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp)
         return resp
     except ObjectDoesNotExist:
-        raise HTTPException(status_code=404, detail='No such database')
-    except AssertionError as e:
+        raise HTTPException(status_code=404, detail=f'No such database: {database_id}')
+    except (AssertionError, InvalidData, InvalidObject) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -122,7 +133,7 @@ def delete_database(database_id):
 
     """
     try:
-        resp = _delete_database(database_id)
+        resp = _delete_database(escape_string(database_id, kind='id'))
         return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
@@ -148,6 +159,9 @@ def _list_databases(sort_key: str,
 
     # Prepare DBHandler
     handler = get_db_handler('database')
+
+    # Validation
+    validate_sort_key(sort_key, handler)
 
     # Prepare search query
     pql = parse_search_keyword(search_keyword, ['database_id'])
@@ -184,7 +198,7 @@ def _create_database(info: dict):
 
     """
     # Check
-    assert 'database_id' in info.keys()
+    assert 'database_id' in info.keys(), '"database_id" must be specified'
 
     # Check if the 'database_id' already exist
     try:
@@ -221,7 +235,7 @@ def _get_database(database_id):
 
     # Check
     if len(handler) == 0:
-        raise ObjectDoesNotExist('No object found')
+        raise ObjectDoesNotExist(f'No such database: {database_id}')
     if len(handler) > 1:
         raise InvalidObject('Multiple objects found')
 
