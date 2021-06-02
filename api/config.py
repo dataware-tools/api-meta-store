@@ -103,8 +103,8 @@ def _update_config(database_id: str, config):
         # Make sure that column names are the same
         column_names_original = set([c['name'] for c in handler.config['columns']])
         column_names_new = set([c['name'] for c in config['columns']])
-        assert column_names_new == column_names_original, \
-            'You can neither add/remove columns nor change the names'
+        assert column_names_original.issubset(column_names_new), \
+            'You can neither remove columns nor change the names'
 
         # Check contents in each columns
         for column in config['columns']:

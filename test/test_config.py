@@ -91,6 +91,25 @@ def test_update_config_200_2(init, add_data):
     assert str(config) == str(data)
 
 
+def test_update_config_200_3(init, add_data):
+    config = _get_config()
+    config['columns'].append({
+        'name': 'abc',
+        'dtype': 'string',
+        'aggregation': 'first',
+        'display_name': 'ABC'
+    })
+
+    _set_env()
+    r = client.patch(
+        '/databases/default/config',
+        json=config
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert str(config) == str(data)
+
+
 def test_update_config_400(init, add_data):
     _set_env()
     r = client.patch(
