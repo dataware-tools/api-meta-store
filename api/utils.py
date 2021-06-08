@@ -78,13 +78,13 @@ def to_record_id_df(df):
 
 def _parse_search_keyword(keyword, expression, replace_expression=None):
     key = keyword.split(expression)[0]
-    key = f'"{key}"'
+    key = f"'{key}'"
     value = ''.join(keyword.split(expression)[1:])
     value = value.replace('\\', '')
     if key == '' or value == '':
         return ''
     if not value.isdecimal():
-        value = f'"{value}"'
+        value = f"'{value}'"
     if replace_expression == 'regex':
         return f"{key} == regex({value})"
     elif replace_expression:
@@ -154,9 +154,9 @@ def escape_string(data: str, kind: str = None):
     escaped = data
 
     if kind is None:
-        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>" \'/~!@#$%^&()+-]', '', escaped)
+        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>" /~!@#$%^&()+-]', '', escaped)
     elif kind == 'filtering':
-        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>" \'/~!@#$%^&()+-]', '', escaped)
+        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>" /~!@#$%^&()+-]', '', escaped)
     elif kind == 'id':
         escaped = re.sub('[^a-zA-Z0-9_-]', '', escaped)
     elif kind == 'key':
