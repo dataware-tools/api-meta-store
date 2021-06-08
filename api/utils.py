@@ -154,9 +154,9 @@ def escape_string(data: str, kind: str = None):
     escaped = data
 
     if kind is None:
-        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>"\'/~!@#$%^&()+-]', '', escaped)
+        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>" \'/~!@#$%^&()+-]', '', escaped)
     elif kind == 'filtering':
-        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>"\'/~!@#$%^&()+-]', '', escaped)
+        escaped = re.sub('[^a-zA-Z0-9:;.,_=<>" \'/~!@#$%^&()+-]', '', escaped)
     elif kind == 'id':
         escaped = re.sub('[^a-zA-Z0-9_-]', '', escaped)
     elif kind == 'key':

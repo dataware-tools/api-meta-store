@@ -57,6 +57,45 @@ def test_list_records_404(init):
     assert r.status_code == 404
 
 
+def test_search_records_200(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/records',
+        params={
+            'search': 'pytest'
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
+def test_search_records_200_2(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/records',
+        params={
+            'search': 'record_id:pytest'
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
+def test_search_records_200_3(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/records',
+        params={
+            'search': 'record_id:pytest name:pytest'
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
 def test_create_record_200(init):
     _set_env()
     r = client.post(
