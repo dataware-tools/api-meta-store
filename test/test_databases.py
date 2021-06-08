@@ -44,6 +44,49 @@ def test_list_databases_200(init, add_data):
     assert len(data['data']) > 0
 
 
+def test_fuzzy_search_databases_200(init, add_data):
+    _set_env()
+    r = client.get('/databases', params={
+        'search': 'def'
+    })
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
+def test_fuzzy_search_databases_200_2(init, add_data):
+    _set_env()
+    r = client.get('/databases', params={
+        'search': 'def',
+        'search_key': ['abc']
+    })
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) == 0
+
+
+def test_fuzzy_search_databases_200_3(init, add_data):
+    _set_env()
+    r = client.get('/databases', params={
+        'search': 'def',
+        'search_key': ['abc', 'database_id']
+    })
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
+def test_fuzzy_search_databases_200_4(init, add_data):
+    _set_env()
+    r = client.get('/databases', params={
+        'search': 'Desc',
+        'search_key': ['description']
+    })
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
 def test_create_database(init):
     _set_env()
     r = client.get('/databases/default')

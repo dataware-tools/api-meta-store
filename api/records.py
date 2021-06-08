@@ -2,7 +2,9 @@
 # Copyright API authors
 """Record related functions."""
 
-from fastapi import APIRouter, HTTPException, Body
+from typing import List, Optional
+
+from fastapi import APIRouter, HTTPException, Body, Query
 
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
 from api.databases import _get_database
@@ -28,7 +30,8 @@ def list_records(
     sort_key: str = 'record_id',
     per_page: int = 50,
     page: int = 1,
-    search: str = None
+    search: str = None,
+    search_key: Optional[List[str]] = Query(None)
 ):
     """List records.
 
@@ -38,6 +41,7 @@ def list_records(
         per_page (int): Number of items to list in a page
         page (int): Current page
         search (str): Search keyword
+        search_key (list): Which key to fuzzy search with
 
     Returns:
         (json): list of records
@@ -49,7 +53,9 @@ def list_records(
             escape_string(sort_key, kind='key'),
             per_page,
             page,
-            escape_string(search, kind='filtering')
+            escape_string(search, kind='filtering'),
+            search_key if search_key is None
+            else [escape_string(key, kind='key') for key in search_key]
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
@@ -166,7 +172,8 @@ def _list_records(database_id: str,
                   sort_key: str,
                   per_page: int,
                   page: int,
-                  search_keyword: str):
+                  search_keyword: str,
+                  search_key: list):
     """Return a list of records.
 
     Args:
@@ -175,12 +182,15 @@ def _list_records(database_id: str,
         per_page (int): Number of items per a page
         page (int): Index of current page
         search_keyword (str): Keyword
+        search_key (list): Which key to fuzzy search with
 
     Returns:
         (dict): list of records
 
     """
     begin = per_page * (page - 1)
+    if search_key is None:
+        search_key = ['record_id']
 
     # Check if the database exist
     _ = _get_database(database_id)
@@ -192,7 +202,7 @@ def _list_records(database_id: str,
     validate_sort_key(sort_key, handler)
 
     # Prepare search query
-    pql = parse_search_keyword(search_keyword, ['record_id'])
+    pql = parse_search_keyword(search_keyword, search_key)
     order_by = [(sort_key, 1)]
 
     # Read

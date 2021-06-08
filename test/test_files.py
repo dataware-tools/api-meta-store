@@ -117,6 +117,20 @@ def test_list_files_404(init):
     assert r.status_code == 404
 
 
+def test_fuzzy_search_files_200(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/files',
+        params={
+            'search': 'pytest',
+            'search_key': ['name']
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
 def test_create_file_200(init):
     _set_env()
     r = client.post(

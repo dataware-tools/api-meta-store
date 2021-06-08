@@ -2,7 +2,9 @@
 # Copyright API authors
 """Database related functions."""
 
-from fastapi import APIRouter, HTTPException, Body
+from typing import List, Optional
+
+from fastapi import APIRouter, HTTPException, Body, Query
 
 from api.exceptions import \
     ObjectExists, \
@@ -29,7 +31,8 @@ def list_databases(
     sort_key: str = 'database_id',
     per_page: int = 50,
     page: int = 1,
-    search: str = None
+    search: str = None,
+    search_key: Optional[List[str]] = Query(None)
 ):
     """List databases.
 
@@ -38,6 +41,7 @@ def list_databases(
         per_page (int): Number of items to list in a page
         page (int): Current page
         search (str): Search keyword
+        search_key (list): Which key to fuzzy search with
 
     Returns:
         (json): list of databases
@@ -48,7 +52,9 @@ def list_databases(
             escape_string(sort_key, kind='key'),
             int(per_page),
             int(page),
-            escape_string(search, kind='filtering')
+            escape_string(search, kind='filtering'),
+            search_key if search_key is None
+            else [escape_string(key, kind='key') for key in search_key]
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
@@ -142,7 +148,8 @@ def delete_database(database_id):
 def _list_databases(sort_key: str,
                     per_page: int,
                     page: int,
-                    search_keyword: str):
+                    search_keyword: str,
+                    search_key: list):
     """Return a list of databases.
 
     Args:
@@ -150,12 +157,15 @@ def _list_databases(sort_key: str,
         per_page (int): Number of items per a page
         page (int): Index of current page
         search_keyword (str): Keyword
+        search_key (list): Which key to fuzzy search with
 
     Returns:
         (dict): list of databases
 
     """
     begin = per_page * (page - 1)
+    if search_key is None:
+        search_key = ['database_id']
 
     # Prepare DBHandler
     handler = get_db_handler('database')
@@ -164,7 +174,7 @@ def _list_databases(sort_key: str,
     validate_sort_key(sort_key, handler)
 
     # Prepare search query
-    pql = parse_search_keyword(search_keyword, ['database_id'])
+    pql = parse_search_keyword(search_keyword, search_key)
     order_by = [(sort_key, 1)]
 
     # Read

@@ -109,6 +109,20 @@ def test_search_records_200_4(init, add_data):
     assert len(data['data']) == 0
 
 
+def test_fuzzy_search_records_200(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/records',
+        params={
+            'search': 'Desc',
+            'search_key': ['record_id', 'description']
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
 def test_create_record_200(init):
     _set_env()
     r = client.post(
