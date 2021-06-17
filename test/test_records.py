@@ -307,7 +307,7 @@ def test_delete_record_200_2(init, add_data):
 
     # Add extra data
     client.post(
-        f'/databases/default/records',
+        '/databases/default/records',
         json={
             'record_id': 'pytest',
             'name': 'pytest',
