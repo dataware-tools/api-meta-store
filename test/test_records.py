@@ -302,6 +302,38 @@ def test_delete_record_200(init, add_data):
     assert r.status_code == 404
 
 
+def test_delete_record_200_2(init, add_data):
+    _set_env()
+
+    # Add extra data
+    client.post(
+        f'/databases/default/records',
+        json={
+            'record_id': 'pytest',
+            'name': 'pytest',
+            'path': '/path/to/file',
+            'description': 'Description',
+            'list': ['a', 'b', 'c'],
+            'tags': ['tag1', 'tag2']
+        }
+    )
+
+    # Delete the record
+    r = client.delete(
+        '/databases/default/records/pytest',
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'database_id' in data.keys()
+    assert data['database_id'] == 'default'
+    assert 'record_id' in data.keys()
+    assert data['record_id'] == 'pytest'
+    r = client.get(
+        '/databases/default/records/pytest',
+    )
+    assert r.status_code == 404
+
+
 def test_delete_record_404(init, add_data):
     _set_dummy_env()
     r = client.delete(

@@ -2,6 +2,7 @@
 # Copyright API authors
 """Record related functions."""
 
+import copy
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Body, Query
@@ -259,12 +260,13 @@ def _create_record(database_id: str, info: dict):
     return resp
 
 
-def _get_record(database_id: str, record_id: str):
+def _get_record(database_id: str, record_id: str, strict_check=True):
     """Get record information.
 
     Args:
         database_id (str): ID of the database
         record_id (str): ID of the record
+        strict_check (bool): Check that metadata is grouped by 'record_id'
 
     Returns:
         (dict): record information
@@ -279,7 +281,7 @@ def _get_record(database_id: str, record_id: str):
     # Check
     if len(handler) == 0:
         raise ObjectDoesNotExist('No object found')
-    if len(handler) > 1:
+    if len(handler) > 1 and strict_check:
         raise InvalidObject('Multiple objects found')
 
     # Return
@@ -301,7 +303,7 @@ def _update_record(database_id: str, record_id: str, info):
 
     """
     # Check the existence of the record-id
-    _ = _get_record(database_id, record_id)
+    _ = _get_record(database_id, record_id, strict_check=False)
 
     # Prepare DBHandler
     handler = get_db_handler('record', database_id=database_id)
@@ -352,11 +354,20 @@ def _delete_record(database_id: str, record_id: str):
 
     """
     # Check the existence of the database-id
-    info = _get_record(database_id, record_id)
+    _ = _get_record(database_id, record_id, strict_check=False)
 
-    # Save to DB
+    # Prepare DBHandler
     handler = get_db_handler('record', database_id=database_id)
-    handler.remove_data(info)
+
+    # Execute query and read DB
+    handler.read(pql=f'record_id == "{record_id}"')
+
+    # Copy metadata to delete
+    data_to_delete = copy.deepcopy(handler.data)
+
+    # Remove metadata
+    for data in data_to_delete:
+        handler.remove_data(data)
     handler.save()
 
     resp = {
