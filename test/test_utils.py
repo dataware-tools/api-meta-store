@@ -35,6 +35,21 @@ def test_filter_data():
     assert '_aaa' not in filtered_data.keys()
 
 
+def test_filter_data_excludes():
+    """Test for filter_data with exclude option."""
+    from api.utils import filter_data
+    data = {
+        'exclude1': 'exclude1',
+        'exclude2': 'exclude2',
+        'include': 'include',
+    }
+
+    filtered_data = filter_data(data, excludes=['exclude1', 'exclude2'])
+    assert 'include' in filtered_data.keys()
+    assert 'exclude1' not in filtered_data.keys()
+    assert 'exclude2' not in filtered_data.keys()
+
+
 def test_escape_string():
     """Test for escape_string."""
     from api.utils import escape_string

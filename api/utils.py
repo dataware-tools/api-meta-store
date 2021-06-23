@@ -5,6 +5,7 @@
 import datetime
 import os
 import re
+from typing import List
 
 from api.exceptions import InvalidData, InvalidSortKey
 from pydtk.db import V4DBHandler as DBHandler
@@ -187,17 +188,18 @@ def validate_input_data(data: dict):
             raise InvalidData(f'invalid key: {k}')
 
 
-def filter_data(data: dict) -> dict:
+def filter_data(data: dict, excludes: List[str] = []) -> dict:
     """Filter data for response message.
 
     Args:
         data (dict): original data
+        excludes (List[str], optional): keys of data to exclude from response
 
     Returns:
         (dict): data with filtered keys
 
     """
-    return {k: v for k, v in data.items() if not k.startswith('_')}
+    return {k: v for k, v in data.items() if not k.startswith('_') and k not in excludes}
 
 
 def get_db_handler(handler_type: str, database_id: str = None) -> DBHandler:
