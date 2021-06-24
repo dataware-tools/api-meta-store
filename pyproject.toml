@@ -13,7 +13,7 @@ authors = [
 readme = 'README.md'
 repository = "https://github.com/dataware-tools/api-meta-store.git"
 homepage = "https://github.com/dataware-tools/api-meta-store"
-keywords = ['template', 'dataware', 'api']
+keywords = ['metadata', 'dataware', 'api']
 classifiers=[
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
@@ -23,8 +23,8 @@ classifiers=[
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
-dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", branch = "master" }
-pydtk = { git = "https://github.com/dataware-tools/pydtk.git", extras = ["mongodb"] }
+dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", tag = "v0.1.0" }
+pydtk = "^0.1.1"
 fastapi = "^0.65.0"
 uvicorn = "^0.13.4"
 requests = "^2.25.1"
