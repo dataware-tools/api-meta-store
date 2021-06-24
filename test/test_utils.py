@@ -76,15 +76,14 @@ def test_get_secret_columns(init):
     """Test for get_secret_columns."""
     from api.utils import get_secret_columns
 
-    # Change tags to secret
+    # Change path to secret
     config = _get_config()
     for column in config['columns']:
-        if column['name'] == 'tags':
+        if column['name'] == 'path':
             column['is_secret'] = True
-    _set_env()
     r = client.patch(
         '/databases/default/config',
         json=config
     )
-
-    assert get_secret_columns('default') == ['tags']
+    assert r.status_code == 200
+    assert get_secret_columns('default') == ['path']
