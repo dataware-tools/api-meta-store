@@ -266,3 +266,26 @@ def generate_record_id():
 
     """
     return datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:-3]
+
+
+def get_secret_columns(database_id: str) -> List[str]:
+    """Returns secret columns in the database.
+
+    Args:
+        database_id (str): Escaped database_id
+
+    Returns:
+        isecret_columns (List[str])
+
+    """
+    # Get config for database
+    handler = get_db_handler('config', database_id=database_id)
+    config = handler.config
+
+    # Get list of secret columns
+    secret_columns = []
+    if 'columns' in config.keys():
+        for column in config['columns']:
+            if 'is_secret' in column.keys() and column['is_secret'] is True:
+                secret_columns.append(column['name'])
+    return secret_columns

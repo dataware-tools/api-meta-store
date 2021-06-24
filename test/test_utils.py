@@ -1,6 +1,17 @@
 #!/usr/bin/env python
 # Copyright API authors
 """Test utilities."""
+import pytest
+from .common import _init_database, _set_env, client
+from .test_config import _get_config
+from .test_databases import add_database
+
+
+@pytest.fixture
+def init():
+    _init_database()
+    _set_env()
+    add_database('default')
 
 
 def test_validate_input_data():
@@ -59,3 +70,21 @@ def test_escape_string():
     assert escape_string('/rosbag/topic@#$%', kind='key') == '/rosbag/topic@'
     assert escape_string('/path/to/file.ext', kind='path') == '/path/to/file.ext'
     assert escape_string('38123[[F9I{)(UFOIU#Y&(!', kind='uuid') == '38123F9IUFOIUY'
+
+
+def test_get_secret_columns(init):
+    """Test for get_secret_columns."""
+    from api.utils import get_secret_columns
+
+    # Change tags to secret
+    config = _get_config()
+    for column in config['columns']:
+        if column['name'] == 'tags':
+            column['is_secret'] = True
+    _set_env()
+    r = client.patch(
+        '/databases/default/config',
+        json=config
+    )
+
+    assert get_secret_columns('default') == ['tags']
