@@ -279,7 +279,7 @@ def test_patch_record_400_2(init, add_data):
             'record_id': 'pytest',
             'description': 'new-description',
             'tag': 'new-tag',
-            'tags': []
+            'path': '/abc'
         }
     )
     assert r.status_code == 400

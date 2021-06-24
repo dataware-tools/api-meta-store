@@ -312,14 +312,17 @@ def _update_record(database_id: str, record_id: str, info):
     handler.read(pql=f'record_id == "{record_id}"')
 
     # List-up keys whose values are different from those on DB
+    keys_to_add = set()
     keys_to_update = set()
     for data in handler:
         for key in info.keys():
-            if key in data.keys() and data[key] != info[key]:
+            if key not in data.keys():
+                keys_to_add.add(key)
+            elif data[key] != info[key]:
                 keys_to_update.add(key)
 
     # Check keys
-    for key in keys_to_update:
+    for key in {*keys_to_add, *keys_to_update}:
         if key in handler.config['index_columns']:
             raise InvalidData(f'Key "{key}" cannot be updated. Please replace this record.')
         if key not in [c['name'] for c in handler.config['columns']]:
