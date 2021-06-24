@@ -23,7 +23,7 @@ classifiers=[
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4"
-dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", tag = 'v0.1.0' }
+dataware-tools-api-helper = { git = "https://github.com/dataware-tools/api-helper-python.git", tag = "v0.1.0" }
 pydtk = "^0.1.1"
 fastapi = "^0.65.0"
 uvicorn = "^0.13.4"
