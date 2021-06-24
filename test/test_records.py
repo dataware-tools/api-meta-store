@@ -259,6 +259,10 @@ def test_update_record_404(init, add_data):
 
 
 def test_patch_record_400(init, add_data):
+    """The following request must be rejected
+    as key `record_id` is used as one of `index_columns`
+
+    """
     _set_env()
     r = client.patch(
         '/databases/default/records/pytest',
@@ -272,6 +276,10 @@ def test_patch_record_400(init, add_data):
 
 
 def test_patch_record_400_2(init, add_data):
+    """The following request must be rejected
+    as key `path` is not aggregated with `first`
+
+    """
     _set_env()
     r = client.patch(
         '/databases/default/records/pytest',
