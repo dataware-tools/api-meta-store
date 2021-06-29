@@ -3,12 +3,17 @@
 """Utilities."""
 
 import datetime
+import json
 import os
 import re
 from typing import List
 
-from api.exceptions import InvalidData, InvalidSortKey
+from dataware_tools_api_helper import get_forward_headers
+from fastapi import Header, HTTPException
 from pydtk.db import V4DBHandler as DBHandler
+import requests
+
+from api.exceptions import InvalidData, InvalidSortKey
 
 
 def to_content_df(df, base_dir_path):
@@ -289,3 +294,83 @@ def get_secret_columns(database_id: str) -> List[str]:
             if 'is_secret' in column.keys() and column['is_secret'] is True:
                 secret_columns.append(column['name'])
     return secret_columns
+
+
+class CheckPermissionClient:
+    """Client for checking permission via api-permission-manager."""
+    PERMISSION_MANAGER_DEV_SERVICE = 'https://dev.tools.hdwlab.com/api/latest/permission_manager'
+    PERMISSION_MANAGER_PROD_SERVICE = os.environ.get(
+        'PERMISSION_MANAGER_PROD_SERVICE',
+        'https://dev.tools.hdwlab.com/api/latest/permission_manager',
+    )
+
+    def __init__(self, auth_header: str, debug=False):
+        """Initialize.
+
+        Args:
+            auth_header (str)
+            debug (bool, optional)
+
+        """
+        self.auth_header = auth_header
+        if debug:
+            self.permission_manager_service = self.PERMISSION_MANAGER_DEV_SERVICE
+        else:
+            self.permission_manager_service = self.PERMISSION_MANAGER_PROD_SERVICE
+
+    def is_permitted(self, action_id: str, database_id: str) -> bool:
+        """Check whether the action is permitted for the user on the database.
+
+        Args:
+            action_id (str): ID of an action to check permission.
+
+        Returns:
+            (bool): Whether if permitted or not.
+
+        """
+        try:
+            res = requests.post(
+                f'{self.permission_manager_service}/permitted-actions/{action_id}',
+                params={
+                    'database_id': database_id,
+                },
+                headers={
+                    'authorization': self.auth_header,
+                },
+            )
+            res.raise_for_status()
+            is_permitted = json.loads(res.text)
+            return is_permitted
+        except Exception:
+            return False
+
+    def columns_to_filter(self, database_id: str):
+        """Get columns to filter for public only read users.
+
+        Args:
+            database_id (str)
+
+        Returns:
+            columns_to_filter (List[str])
+
+        """
+        if self.is_permitted('metadata:read', database_id):
+            # Can read all
+            columns_to_filter = []
+        else:
+            # Can read only public metadata
+            columns_to_filter = get_secret_columns(database_id)
+        return columns_to_filter
+
+
+def get_check_permission_client(authorization: str = Header(None)):
+    """FastAPI dependency for getting client for checking permission.
+
+    Reference:
+        - https://fastapi.tiangolo.com/tutorial/dependencies/
+
+    """
+    return CheckPermissionClient(authorization)
+
+# TODO: Add client to override FastAPI dependency for running tests
+# Reference: https://fastapi.tiangolo.com/advanced/testing-dependencies/
