@@ -298,25 +298,19 @@ def get_secret_columns(database_id: str) -> List[str]:
 
 class CheckPermissionClient:
     """Client for checking permission via api-permission-manager."""
-    PERMISSION_MANAGER_DEV_SERVICE = 'https://dev.tools.hdwlab.com/api/latest/permission_manager'
-    PERMISSION_MANAGER_PROD_SERVICE = os.environ.get(
-        'PERMISSION_MANAGER_PROD_SERVICE',
-        'https://dev.tools.hdwlab.com/api/latest/permission_manager',
+    PERMISSION_MANAGER_SERVICE = os.environ.get(
+        'PERMISSION_MANAGER_SERVICE',
+        'https://demo.dataware-tools.com/api/latest/permission_manager',
     )
 
-    def __init__(self, auth_header: str, debug=False):
+    def __init__(self, auth_header: str):
         """Initialize.
 
         Args:
             auth_header (str)
-            debug (bool, optional)
 
         """
         self.auth_header = auth_header
-        if debug:
-            self.permission_manager_service = self.PERMISSION_MANAGER_DEV_SERVICE
-        else:
-            self.permission_manager_service = self.PERMISSION_MANAGER_PROD_SERVICE
 
     def is_permitted(self, action_id: str, database_id: str) -> bool:
         """Check whether the action is permitted for the user on the database.
@@ -330,7 +324,7 @@ class CheckPermissionClient:
         """
         try:
             res = requests.post(
-                f'{self.permission_manager_service}/permitted-actions/{action_id}',
+                f'{self.PERMISSION_MANAGER_SERVICE}/permitted-actions/{action_id}',
                 params={
                     'database_id': database_id,
                 },
