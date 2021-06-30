@@ -362,9 +362,10 @@ class CheckPermissionClient:
 
         Args:
             action_id (str): ID of an action to check permission.
+            database_id (str): ID of an database to check permission.
 
         """
-        if not self.is_permitted(action_id, database_id):
+        if not self.is_permitted(action_id, escape_string(database_id, kind='id')):
             raise PermissionError(
                 f'Action "{action_id}" is not allowed on database "{database_id}"'
             )
