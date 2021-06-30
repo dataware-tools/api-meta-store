@@ -27,7 +27,8 @@ def _init_database():
 
 
 def _set_env():
-    """Set environment for PyDTK."""
+    """Set environment for Testing."""
+    os.environ['API_IGNORE_PERMISSION_CHECK'] = 'true'
     os.environ['PYDTK_META_DB_ENGINE'] = 'tinymongo'
     os.environ['PYDTK_META_DB_HOST'] = base_dir
     # os.environ['PYDTK_META_DB_ENGINE'] = 'mongodb'
@@ -38,7 +39,8 @@ def _set_env():
 
 
 def _set_dummy_env():
-    """Set dummy environment for PyDTK."""
+    """Set dummy environment for Testing."""
+    os.environ['API_IGNORE_PERMISSION_CHECK'] = 'true'
     os.environ['PYDTK_META_DB_ENGINE'] = 'tinymongo'
     os.environ['PYDTK_META_DB_HOST'] = '/tmp/api-meta-store'
 

@@ -317,6 +317,7 @@ class CheckPermissionClient:
 
         Args:
             action_id (str): ID of an action to check permission.
+            database_id (str): ID of an database to check permission.
 
         Returns:
             (bool): Whether if permitted or not.
@@ -369,6 +370,14 @@ class CheckPermissionClient:
             )
 
 
+class DummyCheckPermissionClient(CheckPermissionClient):
+    """Dummy object of CheckPermissionClient (for debugging and testing)."""
+
+    def is_permitted(self, *args, **kwargs) -> bool:
+        """Allow all."""
+        return True
+
+
 def get_check_permission_client(authorization: str = Header(None)):
     """FastAPI dependency for getting client for checking permission.
 
@@ -376,6 +385,8 @@ def get_check_permission_client(authorization: str = Header(None)):
         - https://fastapi.tiangolo.com/tutorial/dependencies/
 
     """
+    if os.environ.get('API_IGNORE_PERMISSION_CHECK', False):
+        return DummyCheckPermissionClient(authorization)
     return CheckPermissionClient(authorization)
 
 # TODO: Add client to override FastAPI dependency for running tests
