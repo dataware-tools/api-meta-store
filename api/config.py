@@ -36,7 +36,7 @@ def get_config(
 
     """
     try:
-        check_permission_client.check_permissions('databases:read:public', database_id)
+        check_permission_client.check_permissions('databases:read', database_id)
         resp = _get_config(escape_string(database_id, kind='id'))
         resp = filter_data(resp)
         return resp
