@@ -356,6 +356,18 @@ class CheckPermissionClient:
             columns_to_filter = get_secret_columns(database_id)
         return columns_to_filter
 
+    def check_permissions(self, action_id: str, database_id: str):
+        """Check whether the action is permitted for the user on the database and raise if not.
+
+        Args:
+            action_id (str): ID of an action to check permission.
+
+        """
+        if not self.is_permitted(action_id, database_id):
+            raise PermissionError(
+                f'Action "{action_id}" is not allowed on database "{database_id}"'
+            )
+
 
 def get_check_permission_client(authorization: str = Header(None)):
     """FastAPI dependency for getting client for checking permission.

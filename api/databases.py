@@ -4,7 +4,7 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, HTTPException, Body, Query, Depends
 
 from api.exceptions import \
     ObjectExists, \
@@ -18,7 +18,9 @@ from api.utils import \
     validate_input_data, \
     validate_sort_key, \
     escape_string, \
-    get_db_handler
+    get_db_handler, \
+    get_check_permission_client, \
+    CheckPermissionClient
 
 router = APIRouter(
     tags=["databases"],
@@ -32,7 +34,8 @@ def list_databases(
     per_page: int = 50,
     page: int = 1,
     search: str = None,
-    search_key: Optional[List[str]] = Query(None)
+    search_key: Optional[List[str]] = Query(None),
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client)
 ):
     """List databases.
 
@@ -42,6 +45,7 @@ def list_databases(
         page (int): Current page
         search (str): Search keyword
         search_key (list): Which key to fuzzy search with
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (json): list of databases
@@ -54,12 +58,15 @@ def list_databases(
             int(page),
             escape_string(search, kind='filtering'),
             search_key if search_key is None
-            else [escape_string(key, kind='key') for key in search_key]
+            else [escape_string(key, kind='key') for key in search_key],
+            check_permission_client
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
         resp['data'] = [filter_data(item) for item in resp['data']]
         return resp
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except (AssertionError, InvalidSortKey) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except SyntaxError:
@@ -67,10 +74,14 @@ def list_databases(
 
 
 @router.post('/databases')
-def create_database(data=Body(...)):
+def create_database(
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+    data=Body(...),
+):
     """Register new database information.
 
     Args:
+        check_permission_client (CheckPermissionClient): client for check permission
         data (Body): metadata to register
 
     Returns:
@@ -79,40 +90,55 @@ def create_database(data=Body(...)):
     """
     try:
         validate_input_data(data)
+        check_permission_client.check_permissions('databases:write:add', data['database_id'])
         resp = _create_database(data)
         resp = filter_data(resp)
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except (AssertionError, ObjectExists, InvalidData, InvalidObject) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get('/databases/{database_id}')
-def get_database(database_id: str):
+def get_database(
+    database_id: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+):
     """Get database information.
 
     Args:
         database_id (str): database-id
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (json): detail of the database
 
     """
     try:
+        check_permission_client.check_permissions('databases:read', database_id)
         resp = _get_database(escape_string(database_id, kind='id'))
         resp = filter_data(resp)
         return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail=f'No such database: {database_id}')
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 
 @router.patch('/databases/{database_id}')
-def update_database(database_id: str, data=Body(...)):
+def update_database(
+    database_id: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+    data=Body(...),
+):
     """Patch database information.
 
     Args:
         database_id (str): database-id
+        check_permission_client (CheckPermissionClient): client for check permission
         data (Body): database information
 
     Returns:
@@ -121,35 +147,47 @@ def update_database(database_id: str, data=Body(...)):
     """
     try:
         validate_input_data(data)
+        check_permission_client.check_permissions('databases:write:update', database_id)
         resp = _update_database(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp)
         return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail=f'No such database: {database_id}')
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except (AssertionError, InvalidData, InvalidObject) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete('/databases/{database_id}')
-def delete_database(database_id):
+def delete_database(
+    database_id,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+):
     """Delete database information.
 
     Args:
         database_id (str): database-id
+        check_permission_client (CheckPermissionClient): client for check permission
 
     """
     try:
+        check_permission_client.check_permissions('databases:write:delete', database_id)
         resp = _delete_database(escape_string(database_id, kind='id'))
         return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
 
 def _list_databases(sort_key: str,
                     per_page: int,
                     page: int,
                     search_keyword: str,
-                    search_key: list):
+                    search_key: list,
+                    check_permission_client: CheckPermissionClient,
+                    ):
     """Return a list of databases.
 
     Args:
@@ -158,6 +196,7 @@ def _list_databases(sort_key: str,
         page (int): Index of current page
         search_keyword (str): Keyword
         search_key (list): Which key to fuzzy search with
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (dict): list of databases
@@ -179,6 +218,8 @@ def _list_databases(sort_key: str,
 
     # Read
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by)
+
+    # TODO: Filter database-ids based on user's permissions
 
     total = handler.count_total
     number_of_pages = total // per_page + 1
