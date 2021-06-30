@@ -15,6 +15,24 @@ def init():
     _set_env()
     add_database('default')
 
+    # Add secret column
+    r = client.get(
+        '/databases/default/config',
+    )
+    assert r.status_code == 200
+    config = json.loads(r.text)
+    config['columns'].append({
+        'name': 'secret_column',
+        'dtype': 'string',
+        'aggregation': 'first',
+        'display_name': 'secret_column',
+        'is_secret': True,
+    })
+    client.patch(
+        '/databases/default/config',
+        json=config
+    )
+
 
 def add_record(database_id='default', record_id='pytest'):
     client.post(
@@ -24,7 +42,8 @@ def add_record(database_id='default', record_id='pytest'):
             'name': 'pytest',
             'description': 'Description',
             'list': ['a', 'b', 'c'],
-            'tags': ['tag1', 'tag2']
+            'tags': ['tag1', 'tag2'],
+            'secret_column': 'data',
         }
     )
 

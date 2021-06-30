@@ -3,11 +3,17 @@
 """Utilities."""
 
 import datetime
+import json
 import os
 import re
+from typing import List
+
+from dataware_tools_api_helper import get_forward_headers
+from fastapi import Header, HTTPException
+from pydtk.db import V4DBHandler as DBHandler
+import requests
 
 from api.exceptions import InvalidData, InvalidSortKey
-from pydtk.db import V4DBHandler as DBHandler
 
 
 def to_content_df(df, base_dir_path):
@@ -187,17 +193,18 @@ def validate_input_data(data: dict):
             raise InvalidData(f'invalid key: {k}')
 
 
-def filter_data(data: dict) -> dict:
+def filter_data(data: dict, excludes: List[str] = []) -> dict:
     """Filter data for response message.
 
     Args:
         data (dict): original data
+        excludes (List[str], optional): keys of data to exclude from response
 
     Returns:
         (dict): data with filtered keys
 
     """
-    return {k: v for k, v in data.items() if not k.startswith('_')}
+    return {k: v for k, v in data.items() if not k.startswith('_') and k not in excludes}
 
 
 def get_db_handler(handler_type: str, database_id: str = None) -> DBHandler:
@@ -264,3 +271,100 @@ def generate_record_id():
 
     """
     return datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')[:-3]
+
+
+def get_secret_columns(database_id: str) -> List[str]:
+    """Returns secret columns in the database.
+
+    Args:
+        database_id (str): Escaped database_id
+
+    Returns:
+        isecret_columns (List[str])
+
+    """
+    # Get config for database
+    handler = get_db_handler('config', database_id=database_id)
+    config = handler.config
+
+    # Get list of secret columns
+    secret_columns = []
+    if 'columns' in config.keys():
+        for column in config['columns']:
+            if 'is_secret' in column.keys() and column['is_secret'] is True:
+                secret_columns.append(column['name'])
+    return secret_columns
+
+
+class CheckPermissionClient:
+    """Client for checking permission via api-permission-manager."""
+    PERMISSION_MANAGER_SERVICE = os.environ.get(
+        'PERMISSION_MANAGER_SERVICE',
+        'https://demo.dataware-tools.com/api/latest/permission_manager',
+    )
+
+    def __init__(self, auth_header: str):
+        """Initialize.
+
+        Args:
+            auth_header (str)
+
+        """
+        self.auth_header = auth_header
+
+    def is_permitted(self, action_id: str, database_id: str) -> bool:
+        """Check whether the action is permitted for the user on the database.
+
+        Args:
+            action_id (str): ID of an action to check permission.
+
+        Returns:
+            (bool): Whether if permitted or not.
+
+        """
+        try:
+            res = requests.post(
+                f'{self.PERMISSION_MANAGER_SERVICE}/permitted-actions/{action_id}',
+                params={
+                    'database_id': database_id,
+                },
+                headers={
+                    'authorization': self.auth_header,
+                },
+            )
+            res.raise_for_status()
+            is_permitted = json.loads(res.text)
+            return is_permitted
+        except Exception:
+            return False
+
+    def columns_to_filter(self, database_id: str):
+        """Get columns to filter for public only read users.
+
+        Args:
+            database_id (str)
+
+        Returns:
+            columns_to_filter (List[str])
+
+        """
+        if self.is_permitted('metadata:read', database_id):
+            # Can read all
+            columns_to_filter = []
+        else:
+            # Can read only public metadata
+            columns_to_filter = get_secret_columns(database_id)
+        return columns_to_filter
+
+
+def get_check_permission_client(authorization: str = Header(None)):
+    """FastAPI dependency for getting client for checking permission.
+
+    Reference:
+        - https://fastapi.tiangolo.com/tutorial/dependencies/
+
+    """
+    return CheckPermissionClient(authorization)
+
+# TODO: Add client to override FastAPI dependency for running tests
+# Reference: https://fastapi.tiangolo.com/advanced/testing-dependencies/

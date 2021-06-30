@@ -5,7 +5,7 @@
 import copy
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
 from api.databases import _get_database
@@ -16,7 +16,10 @@ from api.utils import \
     validate_input_data, \
     validate_sort_key, \
     get_db_handler, \
-    generate_record_id
+    generate_record_id, \
+    get_secret_columns, \
+    get_check_permission_client, \
+    CheckPermissionClient
 
 router = APIRouter(
     tags=["record"],
@@ -32,7 +35,8 @@ def list_records(
     per_page: int = 50,
     page: int = 1,
     search: str = None,
-    search_key: Optional[List[str]] = Query(None)
+    search_key: Optional[List[str]] = Query(None),
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
 ):
     """List records.
 
@@ -43,11 +47,15 @@ def list_records(
         page (int): Current page
         search (str): Search keyword
         search_key (list): Which key to fuzzy search with
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (json): list of records
 
     """
+    # Get columns to filter based on permission
+    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
+
     try:
         resp = _list_records(
             escape_string(database_id, kind='id'),
@@ -60,7 +68,7 @@ def list_records(
         )
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
-        resp['data'] = [filter_data(item) for item in resp['data']]
+        resp['data'] = [filter_data(item, excludes=columns_to_filter) for item in resp['data']]
         return resp
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -69,21 +77,29 @@ def list_records(
 
 
 @router.post('/databases/{database_id}/records')
-def create_record(database_id: str, *, data=Body(...)):
+def create_record(
+    database_id: str, *,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+    data=Body(...),
+):
     """Register new record information.
 
     Args:
         database_id (str): database-id
+        check_permission_client (CheckPermissionClient): client for check permission
         data (Body): metadata to register
 
     Returns:
         (json): detail of the created record
 
     """
+    # Get columns to filter based on permission
+    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
+
     try:
         validate_input_data(data)
         resp = _create_record(escape_string(database_id, kind='id'), data)
-        resp = filter_data(resp)
+        resp = filter_data(resp, excludes=columns_to_filter)
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
@@ -94,23 +110,30 @@ def create_record(database_id: str, *, data=Body(...)):
 
 
 @router.get('/databases/{database_id}/records/{record_id}')
-def get_record(database_id: str, record_id: str):
+def get_record(
+    database_id: str, record_id: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+):
     """Get record information.
 
     Args:
         database_id (str): database-id
         record_id (str): record-id
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (json): detail of the record
 
     """
+    # Get columns to filter based on permission
+    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
+
     try:
         resp = _get_record(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id')
         )
-        resp = filter_data(resp)
+        resp = filter_data(resp, excludes=columns_to_filter)
         return resp
     except AssertionError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -121,18 +144,26 @@ def get_record(database_id: str, record_id: str):
 
 
 @router.patch('/databases/{database_id}/records/{record_id}')
-def update_record(database_id: str, record_id: str, data=Body(...)):
+def update_record(
+    database_id: str, record_id: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+    data=Body(...),
+):
     """Patch record information.
 
     Args:
         database_id (str): database-id
         record_id (str): record-id
+        check_permission_client (CheckPermissionClient): client for check permission
         data (Body): record information
 
     Returns:
         (json): detail of the record
 
     """
+    # Get columns to filter based on permission
+    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
+
     try:
         validate_input_data(data)
         resp = _update_record(
@@ -140,7 +171,7 @@ def update_record(database_id: str, record_id: str, data=Body(...)):
             escape_string(record_id, kind='id'),
             data
         )
-        resp = filter_data(resp)
+        resp = filter_data(resp, excludes=columns_to_filter)
         return resp
     except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
