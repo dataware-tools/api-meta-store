@@ -52,6 +52,9 @@ def list_files(
         (json): list of files
 
     """
+    # Get columns to filter based on permission
+    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
+
     try:
         check_permission_client.check_permissions('metadata:read:public', database_id)
         resp = _list_files(
@@ -67,7 +70,7 @@ def list_files(
         assert 'data' in resp.keys()
         assert isinstance(resp['data'], list)
         resp['data'] = [_expose_uuid(item) for item in resp['data']]
-        resp['data'] = [filter_data(item) for item in resp['data']]
+        resp['data'] = [filter_data(item, excludes=columns_to_filter) for item in resp['data']]
         return resp
     except (AssertionError, InvalidSortKey) as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -129,11 +132,14 @@ def get_file(
         (json): detail of the file
 
     """
+    # Get columns to filter based on permission
+    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
+
     try:
         check_permission_client.check_permissions('metadata:read:public', database_id)
         resp = _get_file(escape_string(database_id, kind='id'), escape_string(uuid, kind='uuid'))
         resp = _expose_uuid(resp)
-        resp = filter_data(resp)
+        resp = filter_data(resp, excludes=columns_to_filter)
         return resp
     except AssertionError as e:
         raise HTTPException(status_code=400, detail=str(e))
