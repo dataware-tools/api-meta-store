@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright API authors
 """Database related functions."""
-
+import math
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Body, Query, Depends
@@ -222,7 +222,7 @@ def _list_databases(sort_key: str,
     # TODO: Filter database-ids based on user's permissions
 
     total = handler.count_total
-    number_of_pages = total // per_page + 1
+    number_of_pages = math.ceil(total / per_page)
     data = handler.data
 
     resp = {

@@ -3,6 +3,7 @@
 """Record related functions."""
 
 import copy
+import math
 from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -261,7 +262,7 @@ def _list_records(database_id: str,
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by, group_by='record_id')
 
     total = handler.count_total
-    number_of_pages = total // per_page + 1
+    number_of_pages = math.ceil(total / per_page)
     data = handler.data
 
     resp = {

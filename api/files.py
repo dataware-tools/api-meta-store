@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright API authors
 """File related functions."""
-
+import math
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Body, Query, Depends
@@ -270,7 +270,7 @@ def _list_files(database_id: str,
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by)
 
     total = handler.count_total
-    number_of_pages = total // per_page + 1
+    number_of_pages = math.ceil(total / per_page)
     data = handler.data
 
     resp = {
