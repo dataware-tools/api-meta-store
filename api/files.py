@@ -4,7 +4,7 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, HTTPException, Body, Query, Depends
 
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
 from api.databases import _get_database
@@ -14,7 +14,9 @@ from api.utils import \
     escape_string, \
     validate_input_data, \
     validate_sort_key, \
-    get_db_handler
+    get_db_handler, \
+    get_check_permission_client, \
+    CheckPermissionClient
 
 router = APIRouter(
     tags=["file"],
@@ -31,7 +33,8 @@ def list_files(
     per_page: int = 50,
     page: int = 1,
     search: str = None,
-    search_key: Optional[List[str]] = Query(None)
+    search_key: Optional[List[str]] = Query(None),
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
 ):
     """List files.
 
@@ -43,12 +46,14 @@ def list_files(
         page (int): Current page
         search (str): Search keyword
         search_key (list): Which key to fuzzy search with
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (json): list of files
 
     """
     try:
+        check_permission_client.check_permissions('metadata:read:public', database_id)
         resp = _list_files(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id'),
@@ -66,6 +71,8 @@ def list_files(
         return resp
     except (AssertionError, InvalidSortKey) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -74,12 +81,14 @@ def list_files(
 def create_file(
     database_id: str,
     *,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
     data=Body(...)
 ):
     """Register new file information.
 
     Args:
         database_id (str): database-id
+        check_permission_client (CheckPermissionClient): client for check permission
         data (Body): metadata to register
 
     Returns:
@@ -88,12 +97,15 @@ def create_file(
     """
     try:
         validate_input_data(data)
+        check_permission_client.check_permissions('metadata:write:add', database_id)
         resp = _create_file(escape_string(database_id, kind='id'), data)
         resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ObjectDoesNotExist as e:
@@ -101,24 +113,32 @@ def create_file(
 
 
 @router.get('/databases/{database_id}/files/{uuid}')
-def get_file(database_id: str, uuid: str):
+def get_file(
+    database_id: str,
+    uuid: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+):
     """Get file information.
 
     Args:
         database_id (str): database-id
         uuid (str): unique-id
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (json): detail of the file
 
     """
     try:
+        check_permission_client.check_permissions('metadata:read:public', database_id)
         resp = _get_file(escape_string(database_id, kind='id'), escape_string(uuid, kind='uuid'))
         resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
     except AssertionError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
@@ -129,6 +149,7 @@ def get_file(database_id: str, uuid: str):
 def update_file(
     database_id: str,
     uuid: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
     *,
     data=Body(...)
 ):
@@ -137,6 +158,7 @@ def update_file(
     Args:
         database_id (str): database-id
         uuid (str): unique-id
+        check_permission_client (CheckPermissionClient): client for check permission
         data (Body): file information
 
     Returns:
@@ -145,6 +167,7 @@ def update_file(
     """
     try:
         validate_input_data(data)
+        check_permission_client.check_permissions('metadata:write:update', database_id)
         resp = _update_file(
             escape_string(database_id, kind='id'),
             escape_string(uuid, kind='uuid'),
@@ -155,6 +178,8 @@ def update_file(
         return resp
     except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
@@ -162,20 +187,28 @@ def update_file(
 
 
 @router.delete('/databases/{database_id}/files/{uuid}')
-def delete_file(database_id: str, uuid: str):
+def delete_file(
+    database_id: str,
+    uuid: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+):
     """Delete file information.
 
     Args:
         database_id (str): database-id
         uuid (str): unique-id
+        check_permission_client (CheckPermissionClient): client for check permission
 
     """
     try:
+        check_permission_client.check_permissions('metadata:write:delete', database_id)
         resp = _delete_file(
             escape_string(database_id, kind='id'),
             escape_string(uuid, kind='uuid')
         )
         return resp
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
 

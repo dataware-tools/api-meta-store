@@ -57,6 +57,7 @@ def list_records(
     columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
 
     try:
+        check_permission_client.check_permissions('metadata:read:public', database_id)
         resp = _list_records(
             escape_string(database_id, kind='id'),
             escape_string(sort_key, kind='key'),
@@ -72,6 +73,8 @@ def list_records(
         return resp
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except (AssertionError, InvalidSortKey) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -98,11 +101,14 @@ def create_record(
 
     try:
         validate_input_data(data)
+        check_permission_client.check_permissions('metadata:write:add', database_id)
         resp = _create_record(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp, excludes=columns_to_filter)
         return resp
     except ():  # FIXME: Specify exceptions corresponding to this error
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ObjectDoesNotExist as e:
@@ -129,6 +135,7 @@ def get_record(
     columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
 
     try:
+        check_permission_client.check_permissions('metadata:read:public', database_id)
         resp = _get_record(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id')
@@ -137,6 +144,8 @@ def get_record(
         return resp
     except AssertionError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
@@ -166,6 +175,7 @@ def update_record(
 
     try:
         validate_input_data(data)
+        check_permission_client.check_permissions('metadata:write:update', database_id)
         resp = _update_record(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id'),
@@ -175,6 +185,8 @@ def update_record(
         return resp
     except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
@@ -182,20 +194,28 @@ def update_record(
 
 
 @router.delete('/databases/{database_id}/records/{record_id}')
-def delete_record(database_id: str, record_id: str):
+def delete_record(
+    database_id: str,
+    record_id: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+):
     """Delete record information.
 
     Args:
         database_id (str): database-id
         record_id (str): record-id
+        check_permission_client (CheckPermissionClient): client for check permission
 
     """
     try:
+        check_permission_client.check_permissions('metadata:write:delete', database_id)
         resp = _delete_record(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id')
         )
         return resp
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
 

@@ -2,11 +2,17 @@
 # Copyright API authors
 """Record related functions."""
 
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Depends
 
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData
 from api.databases import _get_database
-from api.utils import filter_data, validate_input_data, get_db_handler, escape_string
+from api.utils import \
+    filter_data, \
+    validate_input_data, \
+    get_db_handler, \
+    escape_string, \
+    get_check_permission_client, \
+    CheckPermissionClient
 
 router = APIRouter(
     tags=["config"],
@@ -15,22 +21,29 @@ router = APIRouter(
 
 
 @router.get('/databases/{database_id}/config')
-def get_config(database_id: str):
+def get_config(
+    database_id: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client)
+):
     """Get config.
 
     Args:
         database_id (str): database-id
+        check_permission_client (CheckPermissionClient): client for check permission
 
     Returns:
         (json): config
 
     """
     try:
+        check_permission_client.check_permissions('databases:read:public', database_id)
         resp = _get_config(escape_string(database_id, kind='id'))
         resp = filter_data(resp)
         return resp
     except AssertionError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
@@ -38,11 +51,16 @@ def get_config(database_id: str):
 
 
 @router.patch('/databases/{database_id}/config')
-def update_config(database_id: str, data=Body(...)):
+def update_config(
+    database_id: str,
+    check_permission_client: CheckPermissionClient = Depends(get_check_permission_client),
+    data=Body(...),
+):
     """Patch config.
 
     Args:
         database_id (str): database-id
+        check_permission_client (CheckPermissionClient): client for check permission
         data (Body): new config
 
     Returns:
@@ -51,11 +69,14 @@ def update_config(database_id: str, data=Body(...)):
     """
     try:
         validate_input_data(data)
+        check_permission_client.check_permissions('databases:write:update', database_id)
         resp = _update_config(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp)
         return resp
     except (AssertionError, InvalidData) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidObject as e:
