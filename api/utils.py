@@ -323,7 +323,7 @@ class CheckPermissionClient:
 
         """
         try:
-            res = requests.post(
+            res = requests.get(
                 f'{self.PERMISSION_MANAGER_SERVICE}/permitted-actions/{action_id}',
                 params={
                     'database_id': database_id,
