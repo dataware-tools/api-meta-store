@@ -87,3 +87,15 @@ def test_get_secret_columns(init):
     )
     assert r.status_code == 200
     assert get_secret_columns('default') == ['path']
+
+
+def test_parse_search_keyword():
+    """Test `parse_search_keyword`."""
+    from api.utils import parse_search_keyword
+
+    assert parse_search_keyword('abc:def') == "'abc' == regex('def')"
+    assert parse_search_keyword('time>0') == "'time' > 0"
+    assert parse_search_keyword('time<0') == "'time' < 0"
+    assert parse_search_keyword('time>=0') == "'time' >= 0"
+    assert parse_search_keyword('time<=0') == "'time' <= 0"
+    assert parse_search_keyword('time=0') == "'time' == 0"

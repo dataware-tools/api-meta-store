@@ -3,13 +3,13 @@
 """Utilities."""
 
 import datetime
+from distutils.util import strtobool
 import json
 import os
 import re
 from typing import List
 
-from dataware_tools_api_helper import get_forward_headers
-from fastapi import Header, HTTPException
+from fastapi import Header
 from pydtk.db import V4DBHandler as DBHandler
 import requests
 
@@ -128,7 +128,7 @@ def parse_search_keyword(search_keyword: str, columns=None):
         elif '!=' in key:
             query += _parse_search_keyword(key, '!=')
         elif '=' in key:
-            query += _parse_search_keyword(key, '=')
+            query += _parse_search_keyword(key, '==')
         elif '>' in key:
             query += _parse_search_keyword(key, '>')
         elif '<' in key:
@@ -386,7 +386,7 @@ def get_check_permission_client(authorization: str = Header(None)):
         - https://fastapi.tiangolo.com/tutorial/dependencies/
 
     """
-    if os.environ.get('API_IGNORE_PERMISSION_CHECK', False):
+    if strtobool(os.environ.get('API_IGNORE_PERMISSION_CHECK', False)):
         return DummyCheckPermissionClient(authorization)
     return CheckPermissionClient(authorization)
 
