@@ -128,7 +128,7 @@ def parse_search_keyword(search_keyword: str, columns=None):
         elif '!=' in key:
             query += _parse_search_keyword(key, '!=')
         elif '=' in key:
-            query += _parse_search_keyword(key, '==')
+            query += _parse_search_keyword(key, '=', replace_expression='==')
         elif '>' in key:
             query += _parse_search_keyword(key, '>')
         elif '<' in key:
