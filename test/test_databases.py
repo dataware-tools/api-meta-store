@@ -35,6 +35,16 @@ def add_data():
     add_database('default')
 
 
+@pytest.fixture
+def add_multiple_data():
+    _set_env()
+    add_database('default')
+    add_database('database1')
+    add_database('database2')
+    add_database('database3')
+    add_database('database4')
+
+
 def test_list_databases_200(init, add_data):
     _set_env()
     r = client.get('/databases')
@@ -42,6 +52,36 @@ def test_list_databases_200(init, add_data):
     data = json.loads(r.text)
     _assert_list_response(data)
     assert len(data['data']) > 0
+
+
+def test_list_databases_with_pagination_200(init, add_multiple_data):
+    _set_env()
+    # Get first page
+    r = client.get('/databases', params={
+        'per_page': 3,
+        'page': 1,
+    })
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) == 3
+
+    # Get second page
+    r = client.get('/databases', params={
+        'per_page': 3,
+        'page': 2,
+    })
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) == 2
+
+    # Get third page
+    r = client.get('/databases', params={
+        'per_page': 3,
+        'page': 3,
+    })
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) == 0
 
 
 def test_fuzzy_search_databases_200(init, add_data):
