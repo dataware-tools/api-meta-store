@@ -217,7 +217,7 @@ def _list_databases(sort_key: str,
     order_by = [(sort_key, 1)]
 
     # Read all data
-    handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by)
+    handler.read(pql=pql, limit=None, offset=0, order_by=order_by)
     all_data = handler.data
 
     # Filter database-ids based on user's permissions
