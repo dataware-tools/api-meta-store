@@ -7,7 +7,7 @@ from distutils.util import strtobool
 import json
 import os
 import re
-from typing import List
+from typing import List, Tuple
 
 from fastapi import Header
 from pydtk.db import V4DBHandler as DBHandler
@@ -370,6 +370,33 @@ class CheckPermissionClient:
                 f'Action "{action_id}" is not allowed on database "{database_id}"'
             )
 
+    def filter_permitted_databases(self, database_ids: List[str]) -> Tuple[List[str], List[int]]:
+        """Return ids of permitted databases filtered from input database_ids.
+
+        Args:
+            database_ids (List[str])
+
+        Returns:
+            (List[str]): List of permitted databases.
+            (List[int]): Indices of permitted databases in the input list.
+
+        """
+        try:
+            response = requests.get(
+                f'{self.PERMISSION_MANAGER_SERVICE}/permitted-databases',
+                headers={
+                    'authorization': self.auth_header,
+                },
+                json={
+                    'database_ids': database_ids,
+                },
+            )
+            response.raise_for_status()
+            response_data = json.loads(response.text)
+            return response_data['database_ids'], response_data['selected_indices']
+        except Exception:
+            return [], []
+
 
 class DummyCheckPermissionClient(CheckPermissionClient):
     """Dummy object of CheckPermissionClient (for debugging and testing)."""
@@ -377,6 +404,10 @@ class DummyCheckPermissionClient(CheckPermissionClient):
     def is_permitted(self, *args, **kwargs) -> bool:
         """Allow all."""
         return True
+
+    def filter_permitted_databases(self, database_ids: List[str]) -> Tuple[List[str], List[int]]:
+        """Allow all."""
+        return database_ids, list(range(len(database_ids)))
 
 
 def get_check_permission_client(authorization: str = Header(None)):

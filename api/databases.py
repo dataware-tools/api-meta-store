@@ -216,22 +216,28 @@ def _list_databases(sort_key: str,
     pql = parse_search_keyword(search_keyword, search_key)
     order_by = [(sort_key, 1)]
 
-    # Read
-    handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by)
+    # Read all data
+    handler.read(pql=pql, limit=None, offset=0, order_by=order_by)
+    all_data = handler.data
 
-    # TODO: Filter database-ids based on user's permissions
+    # Filter database-ids based on user's permissions
+    _, permitted_database_indices = check_permission_client.filter_permitted_databases(
+        [item['database_id'] for item in all_data],
+    )
+    permitted_database_objects = [all_data[index] for index in permitted_database_indices]
 
-    total = handler.count_total
+    # Pagination
+    paged_data = permitted_database_objects[begin:begin + per_page]
+    total = len(permitted_database_objects)
     number_of_pages = math.ceil(total / per_page)
-    data = handler.data
 
     resp = {
-        'data': data,
+        'data': paged_data,
         'page': page,
         'per_page': per_page,
         'number_of_pages': number_of_pages,
         'sort_key': sort_key,
-        'length': len(data),
+        'length': len(paged_data),
         'total': total
     }
 
