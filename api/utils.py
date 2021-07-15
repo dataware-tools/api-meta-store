@@ -417,7 +417,7 @@ def get_check_permission_client(authorization: str = Header(None)):
         - https://fastapi.tiangolo.com/tutorial/dependencies/
 
     """
-    if strtobool(os.environ.get('API_IGNORE_PERMISSION_CHECK', False)):
+    if strtobool(os.environ.get('API_IGNORE_PERMISSION_CHECK', 'false')):
         return DummyCheckPermissionClient(authorization)
     return CheckPermissionClient(authorization)
 
