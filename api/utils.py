@@ -112,7 +112,7 @@ def parse_search_keyword(search_keyword: str, columns=None):
     if columns is None:
         columns = ['tags']
 
-    if search_keyword is None:
+    if search_keyword in [None, ""]:
         return None
 
     query = ''
