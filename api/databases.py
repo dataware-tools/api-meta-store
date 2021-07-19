@@ -317,8 +317,8 @@ def _update_database(database_id, info):
     database_info = _get_database(database_id)
 
     # Check info
-    assert 'database_id' in info.keys()
-    assert database_id == info['database_id'], "'database_id' cannot be changed"
+    if 'database_id' in info.keys():
+        assert database_id == info['database_id'], "'database_id' cannot be changed"
 
     # Patch info
     database_info.update(info)

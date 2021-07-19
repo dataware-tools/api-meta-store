@@ -173,7 +173,6 @@ def test_update_database_200(init, add_data):
     r = client.patch(
         '/databases/default',
         json={
-            'database_id': 'default',
             'description': 'new-description',
             'tag': 'new-tag'
         }
