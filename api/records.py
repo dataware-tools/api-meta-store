@@ -5,6 +5,7 @@
 import copy
 import math
 from typing import List, Optional
+from typing_extensions import TypedDict
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
@@ -28,11 +29,16 @@ router = APIRouter(
 )
 
 
+class SortKey(TypedDict):
+    name: str
+    order: int
+
+
 @router.get('/databases/{database_id}/records')
 def list_records(
     database_id: str,
     *,
-    sort_key: str = 'record_id',
+    sort_keys: List[SortKey] = [{"name": 'record_id', "order": 1}],
     per_page: int = 50,
     page: int = 1,
     search: str = None,
@@ -43,7 +49,7 @@ def list_records(
 
     Args:
         database_id (str): Database-id
-        sort_key (str): Sort key
+        sort_keys (list): Sort key
         per_page (int): Number of items to list in a page
         page (int): Current page
         search (str): Search keyword
@@ -57,11 +63,16 @@ def list_records(
     # Get columns to filter based on permission
     columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
 
+    escaped_sort_keys: List[SortKey] = [
+        {
+            "name": escape_string(sort_key['name']),
+            "order": sort_key["order"]
+        } for sort_key in sort_keys]
     try:
         check_permission_client.check_permissions('metadata:read:public', database_id)
         resp = _list_records(
             escape_string(database_id, kind='id'),
-            escape_string(sort_key, kind='key'),
+            escaped_sort_keys,
             per_page,
             page,
             escape_string(search, kind='filtering'),
@@ -222,7 +233,7 @@ def delete_record(
 
 
 def _list_records(database_id: str,
-                  sort_key: str,
+                  sort_keys: List[SortKey],
                   per_page: int,
                   page: int,
                   search_keyword: str,
@@ -231,7 +242,7 @@ def _list_records(database_id: str,
 
     Args:
         database_id (str): database-id
-        sort_key (str): Sort key
+        sort_keys (list): Sort keys
         per_page (int): Number of items per a page
         page (int): Index of current page
         search_keyword (str): Keyword
@@ -252,11 +263,12 @@ def _list_records(database_id: str,
     handler = get_db_handler('record', database_id=database_id)
 
     # Validation
-    validate_sort_key(sort_key, handler)
+    for sort_key in sort_keys:
+        validate_sort_key(sort_key['name'], handler)
 
     # Prepare search query
     pql = parse_search_keyword(search_keyword, search_key)
-    order_by = [(sort_key, 1)]
+    order_by = sort_keys
 
     # Read
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by, group_by='record_id')
@@ -270,7 +282,7 @@ def _list_records(database_id: str,
         'page': page,
         'per_page': per_page,
         'number_of_pages': number_of_pages,
-        'sort_key': sort_key,
+        'sort_keys': sort_keys,
         'length': len(data),
         'total': total,
         'database_id': database_id
