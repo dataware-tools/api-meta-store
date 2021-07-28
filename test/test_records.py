@@ -141,6 +141,31 @@ def test_search_records_200_5(init, add_data):
     assert len(data['data']) == 0
 
 
+def test_sort_records_200(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/records',
+        params={
+            "sort_key": "description",
+            "sort_order": -1
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+
+def test_sort_records_400(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/records',
+        params={
+            "sort_key": "unknown",
+        }
+    )
+    assert r.status_code == 400
+
+
 def test_fuzzy_search_records_200(init, add_data):
     _set_env()
     r = client.get(
