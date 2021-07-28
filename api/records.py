@@ -33,6 +33,7 @@ def list_records(
     database_id: str,
     *,
     sort_key: str = 'record_id',
+    sort_order: int = 1,
     per_page: int = 50,
     page: int = 1,
     search: str = None,
@@ -44,6 +45,7 @@ def list_records(
     Args:
         database_id (str): Database-id
         sort_key (str): Sort key
+        sort_order (str): Sort order (1: asc, -1: desc)
         per_page (int): Number of items to list in a page
         page (int): Current page
         search (str): Search keyword
@@ -62,6 +64,7 @@ def list_records(
         resp = _list_records(
             escape_string(database_id, kind='id'),
             escape_string(sort_key, kind='key'),
+            sort_order,
             per_page,
             page,
             escape_string(search, kind='filtering'),
@@ -223,6 +226,7 @@ def delete_record(
 
 def _list_records(database_id: str,
                   sort_key: str,
+                  sort_order: int,
                   per_page: int,
                   page: int,
                   search_keyword: str,
@@ -232,6 +236,7 @@ def _list_records(database_id: str,
     Args:
         database_id (str): database-id
         sort_key (str): Sort key
+        sort_order (int): Sort order (1: asc, -1: desc)
         per_page (int): Number of items per a page
         page (int): Index of current page
         search_keyword (str): Keyword
@@ -256,7 +261,7 @@ def _list_records(database_id: str,
 
     # Prepare search query
     pql = parse_search_keyword(search_keyword, search_key)
-    order_by = [(sort_key, 1)]
+    order_by = [(sort_key, sort_order)]
 
     # Read
     handler.read(pql=pql, limit=per_page, offset=begin, order_by=order_by, group_by='record_id')
@@ -271,6 +276,7 @@ def _list_records(database_id: str,
         'per_page': per_page,
         'number_of_pages': number_of_pages,
         'sort_key': sort_key,
+        'sort_order': sort_order,
         'length': len(data),
         'total': total,
         'database_id': database_id
