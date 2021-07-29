@@ -136,7 +136,7 @@ def parse_search_keyword(search_keyword: str, columns=None):
         else:
             filters = []
             for column in columns:
-                filters.append(_parse_search_keyword('{0}:.*{1}.*'.format(column, key), ':',
+                filters.append(_parse_search_keyword('{0}:.*(?i){1}.*'.format(column, key), ':',
                                                      replace_expression='regex'))
             query += '(' + ' or '.join(filters) + ')'
 
