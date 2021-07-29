@@ -99,3 +99,5 @@ def test_parse_search_keyword():
     assert parse_search_keyword('time>=0') == "'time' >= 0"
     assert parse_search_keyword('time<=0') == "'time' <= 0"
     assert parse_search_keyword('time=0') == "'time' == 0"
+    assert parse_search_keyword('boolean:true') == "'boolean' == True"
+    assert parse_search_keyword('boolean:False') == "'boolean' == False"

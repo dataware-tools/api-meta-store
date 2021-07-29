@@ -89,13 +89,17 @@ def _parse_search_keyword(keyword, expression, replace_expression=None):
     value = value.replace('\\', '')
     if key == '' or value == '':
         return ''
-    if not value.isdecimal():
-        value = f"'{value}'"
-    if replace_expression == 'regex':
-        return f"{key} == regex({value})"
-    elif replace_expression:
-        return f"{key} {replace_expression} {value}"
-    return f"{key} {expression} {value}"
+    if value in ['true', 'True', 'false', 'False']:
+        value = value.capitalize()
+        return f"{key} == {value}"
+    else:
+        if not value.isdecimal():
+            value = f"'{value}'"
+        if replace_expression == 'regex':
+            return f"{key} == regex({value})"
+        elif replace_expression:
+            return f"{key} {replace_expression} {value}"
+        return f"{key} {expression} {value}"
 
 
 def parse_search_keyword(search_keyword: str, columns=None):
