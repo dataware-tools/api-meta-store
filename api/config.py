@@ -129,9 +129,10 @@ def _update_config(database_id: str, config):
 
         # Check contents in each columns
         for column in config['columns']:
-            assert 'name' in column.keys()
-            assert 'dtype' in column.keys()
-            assert 'aggregation' in column.keys()
+            assert 'name' in column.keys(), 'config for columns should have "name" key'
+            assert 'dtype' in column.keys(), 'config for columns should have "dtype" key'
+            assert 'aggregation' in column.keys(), \
+                'config for columns should have "aggregation" key'
             # assert column['dtype'] in DTYPE_MAP.keys()    # This is too strict
             # TODO: Check the value of column['aggregation']
 

@@ -13,6 +13,7 @@ from api.exceptions import \
     InvalidSortKey, \
     InvalidData
 from api.utils import \
+    check_db_output_schema, \
     parse_search_keyword, \
     filter_data, \
     validate_input_data, \
@@ -61,8 +62,7 @@ def list_databases(
             else [escape_string(key, kind='key') for key in search_key],
             check_permission_client
         )
-        assert 'data' in resp.keys()
-        assert isinstance(resp['data'], list)
+        check_db_output_schema(resp)
         resp['data'] = [filter_data(item) for item in resp['data']]
         return resp
     except PermissionError as e:
@@ -294,7 +294,7 @@ def _get_database(database_id):
     if len(handler) == 0:
         raise ObjectDoesNotExist(f'No such database: {database_id}')
     if len(handler) > 1:
-        raise InvalidObject('Multiple objects found')
+        raise InvalidObject('Multiple datbases found')
 
     # Return
     resp = next(handler)

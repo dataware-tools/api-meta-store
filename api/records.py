@@ -11,6 +11,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
 from api.databases import _get_database
 from api.utils import \
+    check_db_output_schema, \
     parse_search_keyword, \
     filter_data, \
     escape_string, \
@@ -71,8 +72,7 @@ def list_records(
             search_key if search_key is None
             else [escape_string(key, kind='key') for key in search_key]
         )
-        assert 'data' in resp.keys()
-        assert isinstance(resp['data'], list)
+        check_db_output_schema(resp)
         resp['data'] = [filter_data(item, excludes=columns_to_filter) for item in resp['data']]
         return resp
     except ObjectDoesNotExist as e:
@@ -297,7 +297,7 @@ def _create_record(database_id: str, info: dict):
 
     """
     # Check
-    assert database_id is not None
+    assert database_id is not None, "Database ID is required"
 
     # Generate record_id if needed
     if 'record_id' not in info.keys():
@@ -338,9 +338,9 @@ def _get_record(database_id: str, record_id: str, strict_check=True):
 
     # Check
     if len(handler) == 0:
-        raise ObjectDoesNotExist('No object found')
+        raise ObjectDoesNotExist('No record found')
     if len(handler) > 1 and strict_check:
-        raise InvalidObject('Multiple objects found')
+        raise InvalidObject('Multiple records found')
 
     # Return
     resp = handler.data[0]
