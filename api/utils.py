@@ -425,5 +425,12 @@ def get_check_permission_client(authorization: str = Header(None)):
         return DummyCheckPermissionClient(authorization)
     return CheckPermissionClient(authorization)
 
+
+def check_db_output_schema(dict: dict) -> None:
+    """Check specified value is list
+    """
+    assert ('data' in dict.keys() and isinstance(dict['data'], list)), \
+        'unexpected data was returned by PyDTK'
+
 # TODO: Add client to override FastAPI dependency for running tests
 # Reference: https://fastapi.tiangolo.com/advanced/testing-dependencies/

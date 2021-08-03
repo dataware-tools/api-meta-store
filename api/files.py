@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Body, Query, Depends
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
 from api.databases import _get_database
 from api.utils import \
+    check_db_output_schema, \
     parse_search_keyword, \
     filter_data, \
     escape_string, \
@@ -67,8 +68,7 @@ def list_files(
             search_key if search_key is None
             else [escape_string(key, kind='key') for key in search_key]
         )
-        assert 'data' in resp.keys()
-        assert isinstance(resp['data'], list)
+        check_db_output_schema(resp)
         resp['data'] = [_expose_uuid(item) for item in resp['data']]
         resp['data'] = [filter_data(item, excludes=columns_to_filter) for item in resp['data']]
         return resp
@@ -300,8 +300,8 @@ def _create_file(database_id: str, info: dict):
 
     """
     # Check
-    assert database_id is not None
-    assert 'path' in info.keys()
+    assert database_id is not None, 'Database ID is required'
+    assert 'path' in info.keys(), 'Path is required'
 
     # Check if the 'database_id' already exist
     try:
@@ -337,9 +337,9 @@ def _get_file(database_id: str, uuid: str):
 
     # Check
     if len(handler) == 0:
-        raise ObjectDoesNotExist('No object found')
+        raise ObjectDoesNotExist('No file found')
     if len(handler) > 1:
-        raise InvalidObject('Multiple objects found')
+        raise InvalidObject('Multiple files found')
 
     # Return
     resp = handler.data[0]
