@@ -430,7 +430,7 @@ def check_db_output_schema(dict: dict) -> None:
     """Check specified value is list
     """
     assert ('data' in dict.keys() and isinstance(dict['data'], list)), \
-        'database returned data as unexpected schema'
+        'unexpected data was returned by PyDTK'
 
 # TODO: Add client to override FastAPI dependency for running tests
 # Reference: https://fastapi.tiangolo.com/advanced/testing-dependencies/
