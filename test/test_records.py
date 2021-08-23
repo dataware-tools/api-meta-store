@@ -171,7 +171,7 @@ def test_fuzzy_search_records_200(init, add_data):
     r = client.get(
         '/databases/default/records',
         params={
-            'search': 'Desc',
+            'search': 'dEsC',
             'search_key': ['record_id', 'description']
         }
     )
