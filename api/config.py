@@ -2,6 +2,8 @@
 # Copyright API authors
 """Record related functions."""
 
+from dataware_tools_api_helper.helpers import escape_string
+from dataware_tools_api_helper.permissions import CheckPermissionClient
 from fastapi import APIRouter, HTTPException, Body, Depends
 
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData
@@ -10,9 +12,7 @@ from api.utils import \
     filter_data, \
     validate_input_data, \
     get_db_handler, \
-    escape_string, \
-    get_check_permission_client, \
-    CheckPermissionClient
+    get_check_permission_client
 
 router = APIRouter(
     tags=["config"],
