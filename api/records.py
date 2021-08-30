@@ -6,6 +6,8 @@ import copy
 import math
 from typing import List, Optional
 
+from dataware_tools_api_helper.helpers import escape_string
+from dataware_tools_api_helper.permissions import CheckPermissionClient
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 
 from api.exceptions import ObjectDoesNotExist, InvalidObject, InvalidData, InvalidSortKey
@@ -14,14 +16,11 @@ from api.utils import \
     check_db_output_schema, \
     parse_search_keyword, \
     filter_data, \
-    escape_string, \
     validate_input_data, \
     validate_sort_key, \
     get_db_handler, \
     generate_record_id, \
-    get_secret_columns, \
-    get_check_permission_client, \
-    CheckPermissionClient
+    get_check_permission_client
 
 router = APIRouter(
     tags=["record"],

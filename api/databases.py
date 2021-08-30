@@ -4,6 +4,8 @@
 import math
 from typing import List, Optional
 
+from dataware_tools_api_helper.helpers import escape_string
+from dataware_tools_api_helper.permissions import CheckPermissionClient
 from fastapi import APIRouter, HTTPException, Body, Query, Depends
 
 from api.exceptions import \
@@ -18,10 +20,8 @@ from api.utils import \
     filter_data, \
     validate_input_data, \
     validate_sort_key, \
-    escape_string, \
     get_db_handler, \
-    get_check_permission_client, \
-    CheckPermissionClient
+    get_check_permission_client
 
 router = APIRouter(
     tags=["databases"],
