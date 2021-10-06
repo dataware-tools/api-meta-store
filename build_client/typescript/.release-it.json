@@ -1,0 +1,11 @@
+{
+  "git": {
+    "requireCleanWorkingDir": true,
+    "tagMatch": "*",
+    "commit": false,
+    "push": false
+  },
+  "npm": {
+    "ignoreVersion": true
+  }
+}
