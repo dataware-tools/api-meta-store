@@ -25,6 +25,6 @@ jobs:
 
       - name: publish to npm
         working-directory: ./build_client/typescript
-        run: npm version ${GITHUB_REF_T##*/} && npm publish
+        run: npm version ${GITHUB_REF##*/} && npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
