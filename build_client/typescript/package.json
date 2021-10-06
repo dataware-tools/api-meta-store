@@ -31,7 +31,6 @@
     "esbuild": "^0.13.3",
     "npm-run-all": "^4.1.5",
     "openapi-typescript-codegen": "^0.9.3",
-    "release-it": "^14.11.6",
     "typescript": "^4.4.3"
   },
   "types": "./dist/browser/index.d.ts"
