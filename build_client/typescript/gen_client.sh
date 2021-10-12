@@ -6,6 +6,20 @@
 set -e
 set -x
 
+usage() {
+
+  cat <<EOUSAGE
+-----------------------------------------------------------------
+Usage: $0 <Schema URL> <Exported module name>
+------------------------------------------------------------------
+EOUSAGE
+}
+
+if [ $# -ne 2 ]; then
+  usage
+  exit 1
+fi
+
 URL=$1
 EXPORTED_MODULE_NAME=$2
 

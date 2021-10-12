@@ -1,5 +1,9 @@
 {
   "name": "@dataware-tools/api-meta-store-client",
+  "engines": {
+    "node": "^16.11.0",
+    "npm": "^8.0.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/dataware-tools/api-meta-store.git"
@@ -33,5 +37,8 @@
     "openapi-typescript-codegen": "^0.9.3",
     "typescript": "^4.4.3"
   },
-  "types": "./dist/browser/index.d.ts"
+  "types": "./dist/browser/index.d.ts",
+  "volta": {
+    "node": "16.11.0"
+  }
 }
