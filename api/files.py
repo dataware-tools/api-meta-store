@@ -2,6 +2,7 @@
 # Copyright API authors
 """File related functions."""
 import math
+from re import error as REError
 from typing import List, Optional
 
 from dataware_tools_api_helper.helpers import escape_string
@@ -53,11 +54,16 @@ def list_files(
         (json): list of files
 
     """
-    # Get columns to filter based on permission
-    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
-
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Get columns to filter based on permission
+        columns_to_filter = check_permission_client.columns_to_filter(database_id)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:read:public', database_id)
+
         resp = _list_files(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id'),
@@ -72,7 +78,7 @@ def list_files(
         resp['data'] = [_expose_uuid(item) for item in resp['data']]
         resp['data'] = [filter_data(item, excludes=columns_to_filter) for item in resp['data']]
         return resp
-    except (AssertionError, InvalidSortKey) as e:
+    except (AssertionError, InvalidSortKey, REError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
@@ -99,8 +105,15 @@ def create_file(
 
     """
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Validate data
         validate_input_data(data)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:write:add', database_id)
+
         resp = _create_file(escape_string(database_id, kind='id'), data)
         resp = _expose_uuid(resp)
         resp = filter_data(resp)
@@ -132,11 +145,16 @@ def get_file(
         (json): detail of the file
 
     """
-    # Get columns to filter based on permission
-    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
-
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Get columns to filter based on permission
+        columns_to_filter = check_permission_client.columns_to_filter(database_id)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:read:public', database_id)
+
         resp = _get_file(escape_string(database_id, kind='id'), escape_string(uuid, kind='uuid'))
         resp = _expose_uuid(resp)
         resp = filter_data(resp, excludes=columns_to_filter)
@@ -172,8 +190,15 @@ def update_file(
 
     """
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Validate data
         validate_input_data(data)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:write:update', database_id)
+
         resp = _update_file(
             escape_string(database_id, kind='id'),
             escape_string(uuid, kind='uuid'),
@@ -207,7 +232,12 @@ def delete_file(
 
     """
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:write:delete', database_id)
+
         resp = _delete_file(
             escape_string(database_id, kind='id'),
             escape_string(uuid, kind='uuid')

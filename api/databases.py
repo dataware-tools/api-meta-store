@@ -2,6 +2,7 @@
 # Copyright API authors
 """Database related functions."""
 import math
+from re import error as REError
 from typing import List, Optional
 
 from dataware_tools_api_helper.helpers import escape_string
@@ -67,7 +68,7 @@ def list_databases(
         return resp
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
-    except (AssertionError, InvalidSortKey) as e:
+    except (AssertionError, InvalidSortKey, REError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except SyntaxError:
         pass
@@ -89,6 +90,8 @@ def create_database(
 
     """
     try:
+        if 'database_id' in data.keys():
+            data['database_id'] = escape_string(data['database_id'], kind='id')
         validate_input_data(data)
         check_permission_client.check_permissions('databases:write:add', data['database_id'])
         resp = _create_database(data)
@@ -118,8 +121,9 @@ def get_database(
 
     """
     try:
+        database_id = escape_string(database_id, kind='id')
         check_permission_client.check_permissions('databases:read', database_id)
-        resp = _get_database(escape_string(database_id, kind='id'))
+        resp = _get_database(database_id)
         resp = filter_data(resp)
         return resp
     except ObjectDoesNotExist:
@@ -146,9 +150,12 @@ def update_database(
 
     """
     try:
+        database_id = escape_string(database_id, kind='id')
+        if 'database_id' in data.keys():
+            data['database_id'] = escape_string(data['database_id'], kind='id')
         validate_input_data(data)
         check_permission_client.check_permissions('databases:write:update', database_id)
-        resp = _update_database(escape_string(database_id, kind='id'), data)
+        resp = _update_database(database_id, data)
         resp = filter_data(resp)
         return resp
     except ObjectDoesNotExist:
@@ -172,8 +179,9 @@ def delete_database(
 
     """
     try:
+        database_id = escape_string(database_id, kind='id')
         check_permission_client.check_permissions('databases:write:delete', database_id)
-        resp = _delete_database(escape_string(database_id, kind='id'))
+        resp = _delete_database(database_id)
         return resp
     except ObjectDoesNotExist:
         raise HTTPException(status_code=404, detail='No such database')
