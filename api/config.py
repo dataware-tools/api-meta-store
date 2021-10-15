@@ -36,7 +36,12 @@ def get_config(
 
     """
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Check permissions
         check_permission_client.check_permissions('databases:read', database_id)
+
         resp = _get_config(escape_string(database_id, kind='id'))
         resp = filter_data(resp)
         return resp
@@ -68,8 +73,15 @@ def update_config(
 
     """
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Validate data
         validate_input_data(data)
+
+        # Check permissions
         check_permission_client.check_permissions('databases:write:update', database_id)
+
         resp = _update_config(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp)
         return resp

@@ -4,6 +4,7 @@
 
 import copy
 import math
+from re import error as REError
 from typing import List, Optional
 
 from dataware_tools_api_helper.helpers import escape_string
@@ -56,11 +57,16 @@ def list_records(
         (json): list of records
 
     """
-    # Get columns to filter based on permission
-    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
-
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Get columns to filter based on permission
+        columns_to_filter = check_permission_client.columns_to_filter(database_id)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:read:public', database_id)
+
         resp = _list_records(
             escape_string(database_id, kind='id'),
             escape_string(sort_key, kind='key'),
@@ -78,7 +84,7 @@ def list_records(
         raise HTTPException(status_code=404, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
-    except (AssertionError, InvalidSortKey) as e:
+    except (AssertionError, InvalidSortKey, REError) as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -99,12 +105,19 @@ def create_record(
         (json): detail of the created record
 
     """
-    # Get columns to filter based on permission
-    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
-
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Get columns to filter based on permission
+        columns_to_filter = check_permission_client.columns_to_filter(database_id)
+
+        # Validate data
         validate_input_data(data)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:write:add', database_id)
+
         resp = _create_record(escape_string(database_id, kind='id'), data)
         resp = filter_data(resp, excludes=columns_to_filter)
         return resp
@@ -134,11 +147,16 @@ def get_record(
         (json): detail of the record
 
     """
-    # Get columns to filter based on permission
-    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
-
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Get columns to filter based on permission
+        columns_to_filter = check_permission_client.columns_to_filter(database_id)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:read:public', database_id)
+
         resp = _get_record(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id')
@@ -173,12 +191,19 @@ def update_record(
         (json): detail of the record
 
     """
-    # Get columns to filter based on permission
-    columns_to_filter = check_permission_client.columns_to_filter(escape_string(database_id, kind='id'))
-
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Get columns to filter based on permission
+        columns_to_filter = check_permission_client.columns_to_filter(database_id)
+
+        # Validate data
         validate_input_data(data)
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:write:update', database_id)
+
         resp = _update_record(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id'),
@@ -211,7 +236,12 @@ def delete_record(
 
     """
     try:
+        # Escape string
+        database_id = escape_string(database_id, kind='id')
+
+        # Check permissions
         check_permission_client.check_permissions('metadata:write:delete', database_id)
+
         resp = _delete_record(
             escape_string(database_id, kind='id'),
             escape_string(record_id, kind='id')

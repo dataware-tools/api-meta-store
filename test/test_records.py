@@ -141,6 +141,18 @@ def test_search_records_200_5(init, add_data):
     assert len(data['data']) == 0
 
 
+def test_search_records_400(init, add_data):
+    _set_env()
+    for keyword in ['+', ')', '(']:
+        r = client.get(
+            '/databases/default/records',
+            params={
+                'search': keyword
+            }
+        )
+        assert r.status_code == 400
+
+
 def test_sort_records_200(init, add_data):
     _set_env()
     r = client.get(
