@@ -25,7 +25,8 @@ def add_file(database_id='default', record_id='pytest', path='/path/to/file.abc'
             'record_id': record_id,
             'path': path,
             'list': ['a', 'b', 'c'],
-            'tags': ['tag1', 'tag2']
+            'tags': ['tag1', 'tag2'],
+            'japanese': '日本語テキスト'
         }
     )
 
@@ -129,6 +130,32 @@ def test_fuzzy_search_files_200(init, add_data):
     assert r.status_code == 200
     data = json.loads(r.text)
     assert len(data['data']) > 0
+
+
+def test_fuzzy_search_files_200_2(init, add_data):
+    _set_env()
+    r = client.get(
+        '/databases/default/files',
+        params={
+            'search': '日本語',
+            'search_key': ['japanese']
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) > 0
+
+    r = client.get(
+        '/databases/default/files',
+        params={
+            'search': 'あいうえお',
+            'search_key': ['japanese']
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert len(data['data']) == 0
+
 
 
 def test_fuzzy_search_files_400(init, add_data):
