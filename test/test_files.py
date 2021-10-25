@@ -157,7 +157,6 @@ def test_fuzzy_search_files_200_2(init, add_data):
     assert len(data['data']) == 0
 
 
-
 def test_fuzzy_search_files_400(init, add_data):
     _set_env()
     for keyword in ['+', ')', '(']:
