@@ -125,7 +125,7 @@ def create_record(
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
-    except (AssertionError, InvalidData) as e:
+    except (AssertionError, InvalidData, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -211,7 +211,7 @@ def update_record(
         )
         resp = filter_data(resp, excludes=columns_to_filter)
         return resp
-    except (AssertionError, InvalidData) as e:
+    except (AssertionError, InvalidData, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))

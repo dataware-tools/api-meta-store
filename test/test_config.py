@@ -24,6 +24,7 @@ def add_data():
         json={
             'record_id': 'pytest',
             'name': 'pytest',
+            'path': '',
             'description': 'Description',
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2']
@@ -108,6 +109,70 @@ def test_update_config_200_3(init, add_data):
     assert r.status_code == 200
     data = json.loads(r.text)
     assert str(config) == str(data)
+
+
+def test_update_config_datetime(init, add_data):
+    config = _get_config()
+    config['columns'].append({
+        'name': 'datetime',
+        'dtype': 'datetime',
+        'aggregation': 'first',
+        'display_name': 'Datetime'
+    })
+
+    _set_env()
+    r = client.patch(
+        '/databases/default/config',
+        json=config
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert str(config) == str(data)
+
+    r = client.post(
+        '/databases/default/files',
+        json={
+            'name': 'pytest',
+            'record_id': 'pytest',
+            'path': '/path/to/file.datetime',
+            'datetime': '2019-12-04 12:34:56.789'        # ISO format is OK
+        }
+    )
+    assert r.status_code == 200
+    r = client.get(
+        '/databases/default/files',
+        params={
+            'record_id': 'pytest'
+        }
+    )
+    data = json.loads(r.text)
+    assert r.status_code == 200
+    assert any([
+        d['path'] == '/path/to/file.datetime' and 'datetime'
+        in d.keys() for d in data['data']]
+    )
+
+    r = client.post(
+        '/databases/default/files',
+        json={
+            'name': 'pytest',
+            'record_id': 'pytest',
+            'path': '/path/to/file.datetime',
+            'datetime': 12345678.9        # Timestamp (Unix-time) is OK
+        }
+    )
+    assert r.status_code == 200
+
+    r = client.post(
+        '/databases/default/files',
+        json={
+            'name': 'pytest',
+            'record_id': 'pytest',
+            'path': '/path/to/file.datetime',
+            'datetime': '2019/12/04'        # non ISO-format is NG
+        }
+    )
+    assert r.status_code == 400
 
 
 def test_update_config_400(init, add_data):
