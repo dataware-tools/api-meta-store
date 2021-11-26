@@ -148,8 +148,8 @@ def test_update_config_datetime(init, add_data):
     data = json.loads(r.text)
     assert r.status_code == 200
     assert any([
-        d['path'] == '/path/to/file.datetime' and 'datetime'
-        in d.keys() for d in data['data']]
+        d['path'] == '/path/to/file.datetime' and 'datetime' in d.keys()
+        for d in data['data']]
     )
 
     r = client.post(
