@@ -122,7 +122,7 @@ def create_file(
         raise HTTPException(status_code=403, detail='Could not fetch data from database server')
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
-    except (AssertionError, InvalidData) as e:
+    except (AssertionError, InvalidData, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ObjectDoesNotExist as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -207,7 +207,7 @@ def update_file(
         resp = _expose_uuid(resp)
         resp = filter_data(resp)
         return resp
-    except (AssertionError, InvalidData) as e:
+    except (AssertionError, InvalidData, ValueError) as e:
         raise HTTPException(status_code=400, detail=str(e))
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
