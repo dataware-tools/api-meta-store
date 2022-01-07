@@ -301,6 +301,31 @@ def test_update_record_200(init, add_data):
     assert data['tag'] == 'new-tag'
 
 
+def test_update_record_with_none(init, add_data):
+    _set_env()
+    r = client.patch(
+        '/databases/default/records/pytest',
+        json={
+            'record_id': 'pytest',
+            'description': 'new-description',
+            'tag': None
+        }
+    )
+    assert r.status_code == 200
+    data = json.loads(r.text)
+    assert 'record_id' in data.keys()
+    assert data['description'] == 'new-description'
+    assert data['tag'] is None
+    r = client.get(
+        '/databases/default/records/pytest',
+    )
+    data = json.loads(r.text)
+    assert r.status_code == 200
+    assert 'record_id' in data.keys()
+    assert data['description'] == 'new-description'
+    assert data['tag'] is None
+
+
 def test_update_record_404(init, add_data):
     _set_dummy_env()
     r = client.patch(
