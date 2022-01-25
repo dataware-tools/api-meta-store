@@ -44,6 +44,7 @@ def add_record(database_id='default', record_id='pytest'):
             'list': ['a', 'b', 'c'],
             'tags': ['tag1', 'tag2'],
             'secret_column': 'data',
+            'path': ''
         }
     )
 
@@ -278,6 +279,11 @@ def test_get_record_404(init, add_data):
 
 def test_update_record_200(init, add_data):
     _set_env()
+    r = client.get(
+        '/databases/default/records/pytest',
+    )
+    assert r.status_code == 200
+    original_data = json.loads(r.text)
     r = client.patch(
         '/databases/default/records/pytest',
         json={
@@ -299,6 +305,7 @@ def test_update_record_200(init, add_data):
     assert 'record_id' in data.keys()
     assert data['description'] == 'new-description'
     assert data['tag'] == 'new-tag'
+    assert data['path'] == original_data['path']
 
 
 def test_update_record_with_none(init, add_data):
