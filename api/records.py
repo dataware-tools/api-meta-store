@@ -424,6 +424,8 @@ def _update_record(database_id: str, record_id: str, info):
     # Update data one-by-one
     for data in handler.data:
         data.update(info)
+        if 'path' in data.keys() and data['path'] in ['', '/']:
+            del data['path']
         handler.add_data(data, strategy='overwrite')
 
     # Save
