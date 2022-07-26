@@ -32,7 +32,7 @@ def list_files(
     *,
     record_id: str = None,
     sort_key: str = 'path',
-    per_page: int = 50,
+    per_page: int = 1000,
     page: int = 1,
     search: str = None,
     search_key: Optional[List[str]] = Query(None),
